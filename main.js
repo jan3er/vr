@@ -14,7 +14,7 @@ let controllerGrip1, controllerGrip2;
 let room;
 
 let count = 0;
-const radius = 0.08;
+const radius = 0.03;
 let normal = new THREE.Vector3();
 const relativeVelocity = new THREE.Vector3();
 
@@ -47,11 +47,11 @@ function init() {
     const cube     = new THREE.BoxGeometry( 5*radius, 0.2*radius, 0.2*radius );
     const geometry = new THREE.IcosahedronGeometry( radius, 3 );
 
-    const light1 = new THREE.PointLight( 0xffffff, 0.1, 100 );
+    const light1 = new THREE.PointLight( 0xffffff, 0.2, 100 );
     light1.name = "mylight1";
     light1.position.set( 0, 1.6, 3 );
     scene.add( light1 );
-    const light2 = new THREE.PointLight( 0xffffff, 0.1, 100 );
+    const light2 = new THREE.PointLight( 0xffffff, 0.2, 100 );
     light2.name = "mylight2";
     light2.position.set( 0, 1.6, 3 );
     scene.add( light2 );
@@ -70,7 +70,7 @@ function init() {
 
 
 
-    for ( let i = 0; i < 20; i ++ ) {
+    for ( let i = 0; i < 200; i ++ ) {
 
         const object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: Math.random() * 0xffffff } ) );
 
@@ -278,6 +278,10 @@ function render() {
         object.position.y += object.userData.velocity.y * delta;
         object.position.z += object.userData.velocity.z * delta;
 
+        object.userData.velocity.x *= 0.98;
+        object.userData.velocity.y *= 0.98;
+        object.userData.velocity.z *= 0.98;
+
         // keep objects inside room
 
         if ( object.position.x < - range || object.position.x > range ) {
@@ -291,13 +295,10 @@ function render() {
 
             object.position.y = Math.max( object.position.y, radius );
 
-            //object.userData.velocity.x *= 0.98;
-            //object.userData.velocity.y = - object.userData.velocity.y * 0.8;
-            //object.userData.velocity.z *= 0.98;
+            object.userData.velocity.x *= 0.98;
+            object.userData.velocity.y = - object.userData.velocity.y * 0.8;
+            object.userData.velocity.z *= 0.98;
             
-            object.userData.velocity.x *= 0.9;
-            object.userData.velocity.y *= 0.9;
-            object.userData.velocity.z *= 0.9;
 
         }
 
@@ -341,23 +342,26 @@ function render() {
         normal.normalize();
         normal.multiplyScalar(1/distance*distance);
 
-        object.position.x -= normal.x * delta;
-        object.position.y -= normal.y * delta;
-        object.position.z -= normal.z * delta;
+        //object.position.x -= normal.x * delta;
+        //object.position.y -= normal.y * delta;
+        //object.position.z -= normal.z * delta;
+        object.userData.velocity.x -= normal.x * delta;
+        object.userData.velocity.y -= normal.y * delta;
+        object.userData.velocity.z -= normal.z * delta;
 
         normal.copy( object.position ).sub( controller2.position );
         var distance = normal.length();
         normal.normalize();
         normal.multiplyScalar(1/distance*distance);
 
-        object.position.x -= normal.x * delta;
-        object.position.y -= normal.y * delta;
-        object.position.z -= normal.z * delta;
+        //object.position.x -= normal.x * delta;
+        //object.position.y -= normal.y * delta;
+        //object.position.z -= normal.z * delta;
+        object.userData.velocity.x -= normal.x * delta;
+        object.userData.velocity.y -= normal.y * delta;
+        object.userData.velocity.z -= normal.z * delta;
 
 
-        //object.userData.velocity.x -= normal.x * delta;
-        //object.userData.velocity.y -= normal.y * delta;
-        //object.userData.velocity.z -= normal.z * delta;
         
         //object.userData.velocity.y -= 9.8 * delta;
 
