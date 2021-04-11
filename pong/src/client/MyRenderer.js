@@ -20,6 +20,8 @@ export default class MyRenderer extends Renderer {
         this.camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 10 );
         this.camera.position.set( 0, 1.6, 3 );
 
+        this.skipper = 0;
+
         const room = new THREE.LineSegments(
             new BoxLineGeometry( 6, 6, 6, 10, 10, 10 ),
             new THREE.LineBasicMaterial( { color: 0x808080 } )
@@ -93,6 +95,7 @@ export default class MyRenderer extends Renderer {
 
     draw(t, dt) {
         super.draw(t,dt);
+        this.skipper += 1;
 
         const paddle1 = this.scene.getObjectByName( "paddle1" );
         const paddle2 = this.scene.getObjectByName( "paddle2" );
@@ -101,19 +104,23 @@ export default class MyRenderer extends Renderer {
         if (paddles.length == 2){
             paddle1.position.x = paddles[0].position.x;
             paddle1.position.y = paddles[0].position.y;
-            //paddle1.position.z = paddles[0].position.z;
+            paddle1.position.z = paddles[0].position.z;
             paddle2.position.x = paddles[1].position.x;
             paddle2.position.y = paddles[1].position.y;
-            //paddle2.position.z = paddles[1].position.z;
+            paddle2.position.z = paddles[1].position.z;
 
-            if(Math.random() <= 0.01){
-                console.log("-----------")
-                console.log("pos1x: ", paddles[0].position.x);
-                console.log("pos1y: ", paddles[0].position.y);
-                console.log("pos1z: ", paddles[0].position.z);
-                console.log("pos2x: ", paddles[1].position.x);
-                console.log("pos2y: ", paddles[1].position.y);
-                console.log("pos2z: ", paddles[1].position.z);
+            if(this.skipper % 100 == 0){
+                console.log("--------");
+                console.log(paddles[0].position);
+                console.log(paddles[1].position);
+                console.log("--------");
+                console.log(paddles[0].position.x);
+                console.log(paddles[0].position.y);
+                console.log(paddles[0].position.z);
+                console.log(paddles[1].position.x);
+                console.log(paddles[1].position.y);
+                console.log(paddles[1].position.z);
+
             }
         }
 

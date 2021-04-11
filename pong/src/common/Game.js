@@ -1,4 +1,4 @@
-import { GameEngine, BaseTypes, TwoVector, DynamicObject, KeyboardControls, SimplePhysicsEngine } from 'lance-gg';
+import { GameEngine, BaseTypes, ThreeVector, DynamicObject, KeyboardControls, CannonPhysicsEngine, SimplePhysicsEngine } from 'lance-gg';
 
 const PADDING = 20;
 const WIDTH = 400;
@@ -27,27 +27,27 @@ export class Paddle extends DynamicObject {
 }
 
 // a game object to represent the ball
-class Ball extends DynamicObject {
+//class Ball extends DynamicObject {
 
-    constructor(gameEngine, options, props) {
-        super(gameEngine, options, props);
-    }
+    //constructor(gameEngine, options, props) {
+        //super(gameEngine, options, props);
+    //}
 
-    // avoid gradual synchronization of velocity
-    get bending() {
-        return { velocity: { percent: 0.0 } };
-    }
+    //// avoid gradual synchronization of velocity
+    //get bending() {
+        //return { velocity: { percent: 0.0 } };
+    //}
 
-    syncTo(other) {
-        super.syncTo(other);
-    }
-}
+    //syncTo(other) {
+        //super.syncTo(other);
+    //}
+//}
 
 export default class Game extends GameEngine {
 
     constructor(options) {
         super(options);
-        this.physicsEngine = new SimplePhysicsEngine({ gameEngine: this });
+        this.physicsEngine = new CannonPhysicsEngine({ gameEngine: this });
 
         // common code
         this.on('postStep', this.gameLogic.bind(this));
@@ -64,56 +64,56 @@ export default class Game extends GameEngine {
 
     registerClasses(serializer) {
         serializer.registerClass(Paddle);
-        serializer.registerClass(Ball);
+        //serializer.registerClass(Ball);
     }
 
     gameLogic() {
-        let paddles = this.world.queryObjects({ instanceType: Paddle });
-        let ball = this.world.queryObject({ instanceType: Ball });
-        if (!ball || paddles.length !== 2) return;
+        //let paddles = this.world.queryObjects({ instanceType: Paddle });
+        //let ball = this.world.queryObject({ instanceType: Ball });
+        //if (!ball || paddles.length !== 2) return;
 
-        // CHECK LEFT EDGE:
-        if (ball.position.x <= PADDING + PADDLE_WIDTH &&
-            ball.position.y >= paddles[0].position.y && ball.position.y <= paddles[0].position.y + PADDLE_HEIGHT &&
-            ball.velocity.x < 0) {
+        //// CHECK LEFT EDGE:
+        //if (ball.position.x <= PADDING + PADDLE_WIDTH &&
+            //ball.position.y >= paddles[0].position.y && ball.position.y <= paddles[0].position.y + PADDLE_HEIGHT &&
+            //ball.velocity.x < 0) {
 
-            // ball moving left hit player 1 paddle
-            ball.velocity.x *= -1;
-            ball.position.x = PADDING + PADDLE_WIDTH + 1;
-        } else if (ball.position.x <= 0) {
+            //// ball moving left hit player 1 paddle
+            //ball.velocity.x *= -1;
+            //ball.position.x = PADDING + PADDLE_WIDTH + 1;
+        //} else if (ball.position.x <= 0) {
 
-            // ball hit left wall
-            ball.velocity.x *= -1;
-            ball.position.x = 0;
-            console.log(`player 2 scored`);
-            paddles[0].health--;
-        }
+            //// ball hit left wall
+            //ball.velocity.x *= -1;
+            //ball.position.x = 0;
+            //console.log(`player 2 scored`);
+            //paddles[0].health--;
+        //}
 
-        // CHECK RIGHT EDGE:
-        if (ball.position.x >= WIDTH - PADDING - PADDLE_WIDTH &&
-            ball.position.y >= paddles[1].position.y && ball.position.y <= paddles[1].position.y + PADDLE_HEIGHT &&
-            ball.velocity.x > 0) {
+        //// CHECK RIGHT EDGE:
+        //if (ball.position.x >= WIDTH - PADDING - PADDLE_WIDTH &&
+            //ball.position.y >= paddles[1].position.y && ball.position.y <= paddles[1].position.y + PADDLE_HEIGHT &&
+            //ball.velocity.x > 0) {
 
-            // ball moving right hits player 2 paddle
-            ball.velocity.x *= -1;
-            ball.position.x = WIDTH - PADDING - PADDLE_WIDTH - 1;
-        } else if (ball.position.x >= WIDTH ) {
+            //// ball moving right hits player 2 paddle
+            //ball.velocity.x *= -1;
+            //ball.position.x = WIDTH - PADDING - PADDLE_WIDTH - 1;
+        //} else if (ball.position.x >= WIDTH ) {
 
-            // ball hit right wall
-            ball.velocity.x *= -1;
-            ball.position.x = WIDTH - 1;
-            console.log(`player 1 scored`);
-            paddles[1].health--;
-        }
+            //// ball hit right wall
+            //ball.velocity.x *= -1;
+            //ball.position.x = WIDTH - 1;
+            //console.log(`player 1 scored`);
+            //paddles[1].health--;
+        //}
 
-        // ball hits top or bottom edge
-        if (ball.position.y <= 0) {
-            ball.position.y = 1;
-            ball.velocity.y *= -1;
-        } else if (ball.position.y >= HEIGHT) {
-            ball.position.y = HEIGHT - 1;
-            ball.velocity.y *= -1;
-        }
+        //// ball hits top or bottom edge
+        //if (ball.position.y <= 0) {
+            //ball.position.y = 1;
+            //ball.velocity.y *= -1;
+        //} else if (ball.position.y >= HEIGHT) {
+            //ball.position.y = HEIGHT - 1;
+            //ball.velocity.y *= -1;
+        //}
     }
 
     processInput(inputData, playerId) {
@@ -122,16 +122,17 @@ export default class Game extends GameEngine {
         // get the player paddle tied to the player socket
         let playerPaddle = this.world.queryObject({ playerId });
         if (playerPaddle) {
-            if (inputData.input === 'up') {
-                playerPaddle.position.y -= 5;
-            } else if (inputData.input === 'down') {
-                playerPaddle.position.y += 5;
-            }
+            //if (inputData.input === 'up') {
+                //playerPaddle.position.y -= 5;
+            //} else if (inputData.input === 'down') {
+                //playerPaddle.position.y += 5;
+            //}
             //else if (inputData.input === 'mouse') {
                 //playerPaddle.position.x = inputData.options.x;
                 //playerPaddle.position.y = inputData.options.y;
             //}
-            else if (inputData.input === 'c1') {
+            if (inputData.input === 'c1') {
+                console.log(playerId);
                 playerPaddle.position.x = inputData.options.x;
                 playerPaddle.position.y = inputData.options.y;
                 playerPaddle.position.z = inputData.options.z;
@@ -143,6 +144,9 @@ export default class Game extends GameEngine {
                 //}
             }
         }
+        else {
+            console.log("no paddle with id", playerId);
+        }
     }
 
     //
@@ -150,12 +154,17 @@ export default class Game extends GameEngine {
     //
     serverSideInit() {
         // create the paddles and the ball
-        this.addObjectToWorld(new Paddle(this, null, { playerID: 0, position: new TwoVector(PADDING, 0) }));
-        this.addObjectToWorld(new Paddle(this, null, { playerID: 0, position: new TwoVector(WIDTH - PADDING, 0) }));
-        this.addObjectToWorld(new Ball(this, null, {
-            position: new TwoVector(WIDTH /2, HEIGHT / 2),
-            velocity: new TwoVector(2, 2)
-        }));
+        this.addObjectToWorld(new Paddle(this, null, { playerId: 0, position: new ThreeVector(1,2,3) }));
+        this.addObjectToWorld(new Paddle(this, null, { playerId: 0, position: new ThreeVector(4,5,6) }));
+        const a = new ThreeVector(1,2,3)
+        console.log(a);
+        let paddles = this.world.queryObjects({ instanceType: Paddle });
+        console.log(paddles);
+
+        //this.addObjectToWorld(new Ball(this, null, {
+            //position: new TwoVector(WIDTH /2, HEIGHT / 2),
+            //velocity: new TwoVector(2, 2)
+        //}));
     }
 
     // attach newly connected player to next available paddle

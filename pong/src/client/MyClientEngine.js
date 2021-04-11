@@ -13,6 +13,7 @@ export default class MyClientEngine extends ClientEngine {
 
         this.mouseX = null;
         this.mouseY = null;
+        this.skipper = 0;
 
 
         this.controller1 = this.renderer.renderer.xr.getController( 0 );
@@ -29,12 +30,17 @@ export default class MyClientEngine extends ClientEngine {
     }
 
     step(t, dt, physicsOnly) {
-        this.sendInput("c1", { x : this.controller1.position.x,
-                               y : this.controller1.position.y, 
-                               z : this.controller1.position.z });
-        //this.sendInput("c2", { x : this.controller2.position.x,
-                               //y : this.controller2.position.y, 
-                               //z : this.controller2.position.z });
+
+        this.skipper += 1;
+        if(this.skipper % 20 == 0){
+            //console.log("sendx: ", this.controller1.position.x);
+            //console.log("sendy: ", this.controller1.position.y);
+            //console.log("sendz: ", this.controller1.position.z);
+
+            //this.sendInput("c1", { x : this.controller1.position.x,
+                                   //y : this.controller1.position.y, 
+                                   //z : this.controller1.position.z });
+        }
         super.step(t, dt, physicsOnly);
     }
 
