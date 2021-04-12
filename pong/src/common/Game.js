@@ -1,47 +1,21 @@
 import { GameEngine, BaseTypes, ThreeVector, DynamicObject, PhysicalObject3D, KeyboardControls, CannonPhysicsEngine, SimplePhysicsEngine } from 'lance-gg';
 
-//const PADDING = 20;
-//const WIDTH = 400;
-//const HEIGHT = 400;
-//const PADDLE_WIDTH = 10;
-//const PADDLE_HEIGHT = 50;
-
-// A paddle has a health attribute
-//export class Paddle extends DynamicObject {
-
-    //constructor(gameEngine, options, props) {
-        //super(gameEngine, options, props);
-        //this.health = 0;
-        //console.log(options);
-    //}
-
-    //static get netScheme() {
-        //return Object.assign({
-            //health: { type: BaseTypes.TYPES.INT16 }
-        //}, super.netScheme);
-    //}
-
-    //syncTo(other) {
-        //super.syncTo(other);
-        //this.health = other.health;
-    //}
-//}
-
 //A LOT OF CODE COPIED FROM HERE
 //https://github.com/lance-gg/sprocketleague/blob/master/src/common/Ball.js
 export class Paddle extends PhysicalObject3D {
 
-    //constructor(gameEngine, options, props ) {
-        //super(gameEngine, null, props);
-        //this.class = Paddle;
-    //}
-
-    // avoid gradual synchronization of velocity
-    get bending() {
-        return { velocity: { percent: 0.0 } };
+    constructor(gameEngine, options, props ) {
+        super(gameEngine, null, props);
+        this.class = Paddle;
     }
 
+    // avoid gradual synchronization of velocity
+    //get bending() {
+        //return { velocity: { percent: 0.0 } };
+    //}
+
     onAddToWorld(gameEngine) {
+        console.log("add paddle to world!");
         this.gameEngine = gameEngine;
         this.physicsObj = gameEngine.physicsEngine.addSphere(1,1);
         this.physicsObj.position.set(this.position.x, this.position.y, this.position.z);
@@ -52,28 +26,14 @@ export class Paddle extends PhysicalObject3D {
 }
 
 
-// a game object to represent the ball
-//class Ball extends DynamicObject {
-
-    //constructor(gameEngine, options, props) {
-        //super(gameEngine, options, props);
-    //}
-
-    //// avoid gradual synchronization of velocity
-    //get bending() {
-        //return { velocity: { percent: 0.0 } };
-    //}
-
-    //syncTo(other) {
-        //super.syncTo(other);
-    //}
-//}
+var step = 0;
 
 export default class Game extends GameEngine {
 
     constructor(options) {
         super(options);
         this.physicsEngine = new CannonPhysicsEngine({ gameEngine: this });
+        this.physicsEngine.world.gravity.set(0, 0, 0);
 
         // common code
         this.on('postStep', this.gameLogic.bind(this));
@@ -95,52 +55,16 @@ export default class Game extends GameEngine {
     }
 
     gameLogic() {
-        //let paddles = this.world.queryObjects({ instanceType: Paddle });
-        //let ball = this.world.queryObject({ instanceType: Ball });
-        //if (!ball || paddles.length !== 2) return;
 
-        //// CHECK LEFT EDGE:
-        //if (ball.position.x <= PADDING + PADDLE_WIDTH &&
-            //ball.position.y >= paddles[0].position.y && ball.position.y <= paddles[0].position.y + PADDLE_HEIGHT &&
-            //ball.velocity.x < 0) {
-
-            //// ball moving left hit player 1 paddle
-            //ball.velocity.x *= -1;
-            //ball.position.x = PADDING + PADDLE_WIDTH + 1;
-        //} else if (ball.position.x <= 0) {
-
-            //// ball hit left wall
-            //ball.velocity.x *= -1;
-            //ball.position.x = 0;
-            //console.log(`player 2 scored`);
-            //paddles[0].health--;
-        //}
-
-        //// CHECK RIGHT EDGE:
-        //if (ball.position.x >= WIDTH - PADDING - PADDLE_WIDTH &&
-            //ball.position.y >= paddles[1].position.y && ball.position.y <= paddles[1].position.y + PADDLE_HEIGHT &&
-            //ball.velocity.x > 0) {
-
-            //// ball moving right hits player 2 paddle
-            //ball.velocity.x *= -1;
-            //ball.position.x = WIDTH - PADDING - PADDLE_WIDTH - 1;
-        //} else if (ball.position.x >= WIDTH ) {
-
-            //// ball hit right wall
-            //ball.velocity.x *= -1;
-            //ball.position.x = WIDTH - 1;
-            //console.log(`player 1 scored`);
-            //paddles[1].health--;
-        //}
-
-        //// ball hits top or bottom edge
-        //if (ball.position.y <= 0) {
-            //ball.position.y = 1;
-            //ball.velocity.y *= -1;
-        //} else if (ball.position.y >= HEIGHT) {
-            //ball.position.y = HEIGHT - 1;
-            //ball.velocity.y *= -1;
-        //}
+        step += 1;
+        if(step % 100 == 0){
+            let paddles = this.world.queryObjects({ instanceType: Paddle });
+            if (paddles.length == 2){
+                console.log("position in gameLogic():");
+                console.log(paddles[0].physicsObj.position);
+                console.log(paddles[1].physicsObj.position);
+            }
+        }
     }
 
     processInput(inputData, playerId) {
@@ -149,26 +73,10 @@ export default class Game extends GameEngine {
         // get the player paddle tied to the player socket
         let playerPaddle = this.world.queryObject({ playerId });
         if (playerPaddle) {
-            //if (inputData.input === 'up') {
-                //playerPaddle.position.y -= 5;
-            //} else if (inputData.input === 'down') {
-                //playerPaddle.position.y += 5;
-            //}
-            //else if (inputData.input === 'mouse') {
-                //playerPaddle.position.x = inputData.options.x;
-                //playerPaddle.position.y = inputData.options.y;
-            //}
             if (inputData.input === 'c1') {
-                playerPaddle.position.x = inputData.options.x;
-                playerPaddle.position.y = inputData.options.y;
-                playerPaddle.position.z = inputData.options.z;
-                //console.log(inputData);
-                //if(Math.random() <= 0.05){
-                    //console.log("game: ", playerId);
-                    //console.log("game: ", inputData.options.x);
-                    //console.log("game: ", inputData.options.y);
-                    //console.log("game: ", inputData.options.z);
-                //}
+                playerPaddle.physicsObj.position.x = inputData.options.x;
+                playerPaddle.physicsObj.position.y = inputData.options.y;
+                playerPaddle.physicsObj.position.z = inputData.options.z;
             }
         }
         else {
@@ -184,10 +92,8 @@ export default class Game extends GameEngine {
         this.addObjectToWorld(new Paddle(this, null, { playerId: 0, position: new ThreeVector(1,2,3) }));
         this.addObjectToWorld(new Paddle(this, null, { playerId: 0, position: new ThreeVector(4,5,6) }));
         //this.addObjectToWorld(new Paddle3D(this, null));
-        const a = new ThreeVector(1,2,3)
-        console.log(a);
-        let paddles = this.world.queryObjects({ instanceType: Paddle });
-        console.log(paddles);
+        //let paddles = this.world.queryObjects({ instanceType: Paddle });
+        //console.log(paddles);
 
         //this.addObjectToWorld(new Ball(this, null, {
             //position: new TwoVector(WIDTH /2, HEIGHT / 2),
