@@ -9,10 +9,11 @@ export class Paddle extends PhysicalObject3D {
         this.class = Paddle;
     }
 
-    // avoid gradual synchronization of velocity
-    //get bending() {
-        //return { velocity: { percent: 0.0 } };
-    //}
+    //gradual synchronization of posiiton and velocity. todo: play around to get good values
+    get bending() {
+        return { velocity: { percent: 0.9 },
+                 position: { percent: 0.9 }};
+    }
 
     onAddToWorld(gameEngine) {
         console.log("add paddle to world!");

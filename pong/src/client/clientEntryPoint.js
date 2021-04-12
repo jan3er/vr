@@ -11,8 +11,9 @@ const options = {
     delayInputCount: 3,
     scheduler: 'render-schedule',
     syncOptions: {
-        sync: 'interpolate',
-        remoteObjBending: 0.8,
+        sync: 'extrapolate',
+        remoteObjBending: 1.0,
+        localObjBending: 0.0,
         bendingIncrements: 6
     }
 };
