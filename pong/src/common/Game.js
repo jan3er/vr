@@ -11,15 +11,16 @@ export class Paddle extends PhysicalObject3D {
 
     //gradual synchronization of posiiton and velocity. todo: play around to get good values
     get bending() {
-        return { velocity: { percent: 0.9 },
-                 position: { percent: 0.9 }};
+        return { velocity: { percent: 0.0 },
+                 position: { percent: 0.0 }};
     }
 
     onAddToWorld(gameEngine) {
         console.log("add paddle to world!");
         this.gameEngine = gameEngine;
-        this.physicsObj = gameEngine.physicsEngine.addSphere(1,1);
+        this.physicsObj = gameEngine.physicsEngine.addSphere(0.2,0.01);
         this.physicsObj.position.set(this.position.x, this.position.y, this.position.z);
+        this.physicsObj.velocity.set(0,1,0);
     }
     syncTo(other) {
         super.syncTo(other);
@@ -34,7 +35,8 @@ export default class Game extends GameEngine {
     constructor(options) {
         super(options);
         this.physicsEngine = new CannonPhysicsEngine({ gameEngine: this });
-        this.physicsEngine.world.gravity.set(0, 0, 0);
+        this.physicsEngine.world.gravity.set(0, -0.2, 0);
+        this.physicsEngine.addBox(10, 0.01, 10, 0, 0);
 
         // common code
         this.on('postStep', this.gameLogic.bind(this));
@@ -63,7 +65,9 @@ export default class Game extends GameEngine {
             if (paddles.length == 2){
                 console.log("position in gameLogic():");
                 console.log(paddles[0].physicsObj.position);
+                console.log(paddles[0].physicsObj.velocity);
                 console.log(paddles[1].physicsObj.position);
+                console.log(paddles[1].physicsObj.velocity);
             }
         }
     }
@@ -79,6 +83,12 @@ export default class Game extends GameEngine {
                 playerPaddle.physicsObj.position.y = inputData.options.y;
                 playerPaddle.physicsObj.position.z = inputData.options.z;
             }
+            if (inputData.input === 'v1') {
+                playerPaddle.physicsObj.velocity.x = inputData.options.x;
+                playerPaddle.physicsObj.velocity.y = inputData.options.y;
+                playerPaddle.physicsObj.velocity.z = inputData.options.z;
+            }
+            playerPaddle.refreshFromPhysics();
         }
         else {
             console.log("no paddle with id", playerId);
@@ -90,8 +100,8 @@ export default class Game extends GameEngine {
     //
     serverSideInit() {
         // create the paddles and the ball
-        this.addObjectToWorld(new Paddle(this, null, { playerId: 0, position: new ThreeVector(1,2,3) }));
-        this.addObjectToWorld(new Paddle(this, null, { playerId: 0, position: new ThreeVector(4,5,6) }));
+        this.addObjectToWorld(new Paddle(this, null, { playerId: 0, position: new ThreeVector(0.5,1.6,0) }));
+        this.addObjectToWorld(new Paddle(this, null, { playerId: 0, position: new ThreeVector(-0.5,1.6,0) }));
         //this.addObjectToWorld(new Paddle3D(this, null));
         //let paddles = this.world.queryObjects({ instanceType: Paddle });
         //console.log(paddles);
