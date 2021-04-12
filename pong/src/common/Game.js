@@ -1,30 +1,56 @@
-import { GameEngine, BaseTypes, ThreeVector, DynamicObject, KeyboardControls, CannonPhysicsEngine, SimplePhysicsEngine } from 'lance-gg';
+import { GameEngine, BaseTypes, ThreeVector, DynamicObject, PhysicalObject3D, KeyboardControls, CannonPhysicsEngine, SimplePhysicsEngine } from 'lance-gg';
 
-const PADDING = 20;
-const WIDTH = 400;
-const HEIGHT = 400;
-const PADDLE_WIDTH = 10;
-const PADDLE_HEIGHT = 50;
+//const PADDING = 20;
+//const WIDTH = 400;
+//const HEIGHT = 400;
+//const PADDLE_WIDTH = 10;
+//const PADDLE_HEIGHT = 50;
 
 // A paddle has a health attribute
-export class Paddle extends DynamicObject {
+//export class Paddle extends DynamicObject {
 
-    constructor(gameEngine, options, props) {
-        super(gameEngine, options, props);
-        this.health = 0;
+    //constructor(gameEngine, options, props) {
+        //super(gameEngine, options, props);
+        //this.health = 0;
+        //console.log(options);
+    //}
+
+    //static get netScheme() {
+        //return Object.assign({
+            //health: { type: BaseTypes.TYPES.INT16 }
+        //}, super.netScheme);
+    //}
+
+    //syncTo(other) {
+        //super.syncTo(other);
+        //this.health = other.health;
+    //}
+//}
+
+//A LOT OF CODE COPIED FROM HERE
+//https://github.com/lance-gg/sprocketleague/blob/master/src/common/Ball.js
+export class Paddle extends PhysicalObject3D {
+
+    //constructor(gameEngine, options, props ) {
+        //super(gameEngine, null, props);
+        //this.class = Paddle;
+    //}
+
+    // avoid gradual synchronization of velocity
+    get bending() {
+        return { velocity: { percent: 0.0 } };
     }
 
-    static get netScheme() {
-        return Object.assign({
-            health: { type: BaseTypes.TYPES.INT16 }
-        }, super.netScheme);
+    onAddToWorld(gameEngine) {
+        this.gameEngine = gameEngine;
+        this.physicsObj = gameEngine.physicsEngine.addSphere(1,1);
+        this.physicsObj.position.set(this.position.x, this.position.y, this.position.z);
     }
-
     syncTo(other) {
         super.syncTo(other);
-        this.health = other.health;
     }
 }
+
 
 // a game object to represent the ball
 //class Ball extends DynamicObject {
@@ -64,6 +90,7 @@ export default class Game extends GameEngine {
 
     registerClasses(serializer) {
         serializer.registerClass(Paddle);
+        //serializer.registerClass(Controller);
         //serializer.registerClass(Ball);
     }
 
@@ -132,10 +159,10 @@ export default class Game extends GameEngine {
                 //playerPaddle.position.y = inputData.options.y;
             //}
             if (inputData.input === 'c1') {
-                console.log(playerId);
                 playerPaddle.position.x = inputData.options.x;
                 playerPaddle.position.y = inputData.options.y;
                 playerPaddle.position.z = inputData.options.z;
+                //console.log(inputData);
                 //if(Math.random() <= 0.05){
                     //console.log("game: ", playerId);
                     //console.log("game: ", inputData.options.x);
@@ -156,6 +183,7 @@ export default class Game extends GameEngine {
         // create the paddles and the ball
         this.addObjectToWorld(new Paddle(this, null, { playerId: 0, position: new ThreeVector(1,2,3) }));
         this.addObjectToWorld(new Paddle(this, null, { playerId: 0, position: new ThreeVector(4,5,6) }));
+        //this.addObjectToWorld(new Paddle3D(this, null));
         const a = new ThreeVector(1,2,3)
         console.log(a);
         let paddles = this.world.queryObjects({ instanceType: Paddle });

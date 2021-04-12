@@ -102,24 +102,24 @@ export default class MyRenderer extends Renderer {
 
         let paddles = this.gameEngine.world.queryObjects({ instanceType: Paddle });
         if (paddles.length == 2){
-            paddle1.position.x = paddles[0].position.x;
-            paddle1.position.y = paddles[0].position.y;
-            paddle1.position.z = paddles[0].position.z;
-            paddle2.position.x = paddles[1].position.x;
-            paddle2.position.y = paddles[1].position.y;
-            paddle2.position.z = paddles[1].position.z;
+            paddle1.position.x = paddles[0].position.x*0.001;
+            paddle1.position.y = paddles[0].position.y*0.001;
+            paddle1.position.z = paddles[0].position.z*0.001;
+            paddle2.position.x = paddles[1].position.x*0.001;
+            paddle2.position.y = paddles[1].position.y*0.001;
+            paddle2.position.z = paddles[1].position.z*0.001;
 
             if(this.skipper % 100 == 0){
                 console.log("--------");
-                console.log(paddles[0].position);
-                console.log(paddles[1].position);
-                console.log("--------");
-                console.log(paddles[0].position.x);
-                console.log(paddles[0].position.y);
-                console.log(paddles[0].position.z);
-                console.log(paddles[1].position.x);
-                console.log(paddles[1].position.y);
-                console.log(paddles[1].position.z);
+                console.log("render:", paddles[0].position);
+                console.log("render:", paddles[1].position);
+                //console.log("--------");
+                //console.log(paddles[0].position.x);
+                //console.log(paddles[0].position.y);
+                //console.log(paddles[0].position.z);
+                //console.log(paddles[1].position.x);
+                //console.log(paddles[1].position.y);
+                //console.log(paddles[1].position.z);
 
             }
         }

@@ -37,9 +37,9 @@ export default class MyClientEngine extends ClientEngine {
             //console.log("sendy: ", this.controller1.position.y);
             //console.log("sendz: ", this.controller1.position.z);
 
-            //this.sendInput("c1", { x : this.controller1.position.x,
-                                   //y : this.controller1.position.y, 
-                                   //z : this.controller1.position.z });
+            this.sendInput("c1", { x : this.controller1.position.x,
+                                   y : this.controller1.position.y, 
+                                   z : this.controller1.position.z });
         }
         super.step(t, dt, physicsOnly);
     }
