@@ -12,7 +12,7 @@ const options = {
     scheduler: 'render-schedule',
     syncOptions: {
         sync: 'extrapolate',
-        remoteObjBending: 1.0,
+        remoteObjBending: 0.0,
         localObjBending: 0.0,
         bendingIncrements: 6
     }

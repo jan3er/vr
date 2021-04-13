@@ -27,15 +27,40 @@ export class Paddle extends PhysicalObject3D {
     }
 }
 
+export class Ball extends PhysicalObject3D {
 
-var step = 0;
+    constructor(gameEngine, options, props ) {
+        super(gameEngine, null, props);
+        this.class = Paddle;
+    }
+
+    //gradual synchronization of posiiton and velocity. todo: play around to get good values
+    get bending() {
+        return { velocity: { percent: 0.0 },
+                 position: { percent: 0.0 }};
+    }
+
+    onAddToWorld(gameEngine) {
+        console.log("add ball to world!");
+        this.gameEngine = gameEngine;
+        this.physicsObj = gameEngine.physicsEngine.addSphere(0.2,0.01);
+        this.physicsObj.position.set(this.position.x, this.position.y, this.position.z);
+        this.physicsObj.velocity.set(0,0,0);
+    }
+    syncTo(other) {
+        super.syncTo(other);
+    }
+}
+
+
+var skipper = 0;
 
 export default class Game extends GameEngine {
 
     constructor(options) {
         super(options);
         this.physicsEngine = new CannonPhysicsEngine({ gameEngine: this });
-        this.physicsEngine.world.gravity.set(0, -0.2, 0);
+        this.physicsEngine.world.gravity.set(0, -1, 0);
         this.physicsEngine.addBox(10, 0.01, 10, 0, 0);
 
         // common code
@@ -53,14 +78,14 @@ export default class Game extends GameEngine {
 
     registerClasses(serializer) {
         serializer.registerClass(Paddle);
+        serializer.registerClass(Ball);
         //serializer.registerClass(Controller);
-        //serializer.registerClass(Ball);
     }
 
     gameLogic() {
 
-        step += 1;
-        if(step % 100 == 0){
+        skipper += 1;
+        if(skipper % 100 == 0){
             let paddles = this.world.queryObjects({ instanceType: Paddle });
             if (paddles.length == 2){
                 console.log("position in gameLogic():");
@@ -76,22 +101,30 @@ export default class Game extends GameEngine {
         super.processInput(inputData, playerId);
 
         // get the player paddle tied to the player socket
-        let playerPaddle = this.world.queryObject({ playerId });
-        if (playerPaddle) {
-            if (inputData.input === 'c1') {
-                playerPaddle.physicsObj.position.x = inputData.options.x;
-                playerPaddle.physicsObj.position.y = inputData.options.y;
-                playerPaddle.physicsObj.position.z = inputData.options.z;
-            }
-            if (inputData.input === 'v1') {
-                playerPaddle.physicsObj.velocity.x = inputData.options.x;
-                playerPaddle.physicsObj.velocity.y = inputData.options.y;
-                playerPaddle.physicsObj.velocity.z = inputData.options.z;
-            }
-            playerPaddle.refreshFromPhysics();
-        }
-        else {
-            console.log("no paddle with id", playerId);
+        //let playerPaddle = this.world.queryObject({ playerId });
+        //if (playerPaddle) {
+            //if (inputData.input === 'c1') {
+                //playerPaddle.physicsObj.position.x = inputData.options.x;
+                //playerPaddle.physicsObj.position.y = inputData.options.y;
+                //playerPaddle.physicsObj.position.z = inputData.options.z;
+            //}
+            //if (inputData.input === 'v1') {
+                //playerPaddle.physicsObj.velocity.x = inputData.options.x;
+                //playerPaddle.physicsObj.velocity.y = inputData.options.y;
+                //playerPaddle.physicsObj.velocity.z = inputData.options.z;
+            //}
+            //playerPaddle.refreshFromPhysics();
+        //}
+        //else {
+            //console.log("no paddle with id", playerId);
+        //}
+
+
+        if (inputData.input === 'click') {
+            console.log("click!");
+            const ball = this.world.queryObject({ instanceType: Ball });
+            ball.physicsObj.velocity.y = 1;
+            ball.refreshFromPhysics();
         }
     }
 
@@ -102,6 +135,7 @@ export default class Game extends GameEngine {
         // create the paddles and the ball
         this.addObjectToWorld(new Paddle(this, null, { playerId: 0, position: new ThreeVector(0.5,1.6,0) }));
         this.addObjectToWorld(new Paddle(this, null, { playerId: 0, position: new ThreeVector(-0.5,1.6,0) }));
+        this.addObjectToWorld(new Ball(this, null, { playerId: 0, position: new ThreeVector(0,1.6,0) }));
         //this.addObjectToWorld(new Paddle3D(this, null));
         //let paddles = this.world.queryObjects({ instanceType: Paddle });
         //console.log(paddles);

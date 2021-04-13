@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Paddle } from '../common/Game';
+import { Paddle, Ball } from '../common/Game';
 import { Renderer } from 'lance-gg';
 import { BoxLineGeometry } from 'three/examples/jsm/geometries/BoxLineGeometry.js';
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
@@ -45,6 +45,11 @@ export default class MyRenderer extends Renderer {
         paddle2.position.set( -0.5, 1.6, 2 );
         paddle2.name = "paddle2";
         room.add(paddle2);
+
+        const ball = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: Math.random() * 0xffffff } ) );
+        ball.position.set( 0, 1.6, 2 );
+        ball.name = "ball";
+        room.add(ball);
 
     
         this.renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -100,7 +105,7 @@ export default class MyRenderer extends Renderer {
         const paddle1 = this.scene.getObjectByName( "paddle1" );
         const paddle2 = this.scene.getObjectByName( "paddle2" );
 
-        let paddles = this.gameEngine.world.queryObjects({ instanceType: Paddle });
+        const paddles = this.gameEngine.world.queryObjects({ instanceType: Paddle });
         if (paddles.length == 2){
             paddle1.position.x = paddles[0].physicsObj.position.x;
             paddle1.position.y = paddles[0].physicsObj.position.y;
@@ -124,6 +129,15 @@ export default class MyRenderer extends Renderer {
             }
         }
 
+
+        const ballScene = this.scene.getObjectByName( "ball" );
+        const ball = this.gameEngine.world.queryObjects({ instanceType: Ball });
+        if (ball.length == 1){
+            ballScene.position.x = ball[0].physicsObj.position.x;
+            ballScene.position.y = ball[0].physicsObj.position.y;
+            ballScene.position.z = ball[0].physicsObj.position.z;
+
+        }
 
         this.renderer.render( this.scene, this.camera );
     }
