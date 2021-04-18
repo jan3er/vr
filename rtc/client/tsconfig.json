@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+        "module": "esNext",
+		"target": "es5",
+		"moduleResolution": "node",
+		"strict": false,
+		"noImplicitAny": false,
+        "noImplicitReturns": false,
+        "noImplicitThis": false,
+        "strictNullChecks": false,
+        "strictFunctionTypes": true,
+        "skipLibCheck": true,
+		"preserveConstEnums":true,
+        "sourceMap": true,
+        "rootDir": "src"
+	}
+}
