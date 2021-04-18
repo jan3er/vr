@@ -1,9 +1,14 @@
 import { Engine } from "@babylonjs/core/Engines/engine";
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { getSceneModuleWithName } from "./createScene";
-import * as SimplePeer from './simplepeer.min.js';
-
+import { Peer } from "./peer";
 
 const getModuleToLoad = (): string | undefined => location.search.split('scene=')[1];
+
+var jitterBuffer = new Array(10);
+var jitterMax = 0;
+var jitterCurrent = 0;
+var frameId = 0;
 
 export const babylonInit = async () => {
     // get the module to load
@@ -25,11 +30,6 @@ export const babylonInit = async () => {
         scene.render();
     });
 
-
-    setInterval(function(){
-        scene.getMeshByName("sphere").position.y = 5;
-    }, 5000);
-
     // Watch for browser/canvas resize events
     window.addEventListener("resize", function () {
         engine.resize();
@@ -41,55 +41,72 @@ export const babylonInit = async () => {
 babylonInit().then( scene => {
     // scene started rendering, everything is initialized
 
-    var ws = new WebSocket("ws://localhost:9090");
+    const BUFFERDELAY = 0;
+    const UPDATEINTERVAL = 10;
 
-    function makeWebRTC(isInitiator){
-        var p = new SimplePeer({
-            initiator: isInitiator,
-            channelConfig: { //an unordered, unreliable channel (i.e., udp)
-                ordered : false,
-                maxRetransmits: 0
-            },
-            trickle: false
-        });
-
-        p.on('error', err => console.log('error', err));
-
-        p.on('signal', data => {
-            console.log(JSON.stringify(data));
-            ws.send(JSON.stringify(data));
-        });
-
-        if(isInitiator){
-            p.on('connect', () => {
-
-                setInterval(function(){
-                    const pos = scene.getMeshByName("sphere").position;
-                    console.log(pos);
-                    p.send(JSON.stringify(pos));
-                }, 100);
-
+    function connectServer(p){
+        setInterval(function(){
+            var pack = { "id" : frameId, "meshes" : [] };
+            frameId += 1;
+            scene.meshes.forEach(function(m) {
+                var pos = m.position;
+                var pos2 = [pos._x, pos._y, pos._z];
+                var vel = m.physicsImpostor.getLinearVelocity();
+                var vel2 = [vel._x, vel._y, vel._z];
+                pack.meshes.push({"pos" : pos2, "vel" : vel2, "name" : m.name});
             });
-        }
-        p.on('data', data => {
-            /*console.log('data: ' + data);*/
-            data = JSON.parse(data);
-            console.log(data);
-            /*scene.getMeshByName("sphere").position.y = data.y;*/
-            scene.getMeshByName("sphere").position = data;
-        });
-        return p;
-    }
-    var p = makeWebRTC(false);
+            p.send(JSON.stringify(pack));
+        }, UPDATEINTERVAL);
 
-    ws.onmessage = function (evt) {
-        console.log(evt.data);
-        if (evt.data === "go ahead and start a session") {
-            p = makeWebRTC(true);
-        }
-        else {
-            p.signal(JSON.parse(evt.data));
-        }
-    };
+        setInterval(function(){
+            scene.getMeshByName("sphere").physicsImpostor.setLinearVelocity(new Vector3(0,10,0));
+        }, 5118);
+    }
+
+    function connectClient(p){
+        setInterval(function(){
+            if(jitterMax > jitterCurrent + BUFFERDELAY){
+                jitterCurrent += 1;
+            } else {
+                jitterCurrent += 0;
+            }
+            /*console.log(jitterCurrent);*/
+            const data = jitterBuffer[jitterCurrent % 10]
+
+
+            /*const data = jitterBuffer[jitterMax % 10]*/
+            /*console.log(jitterMax-jitterCurrent);*/
+            /*jitterCurrent = jitterMax;*/
+            if(data === undefined) return;
+            data["meshes"].forEach(function(m) {
+                /*console.log(m);*/
+                var mesh = scene.getMeshByName(m["name"]);
+                const pos = new Vector3(m["pos"][0],m["pos"][1],m["pos"][2]);
+                mesh.position = pos;
+                const vel = new Vector3(m["vel"][0],m["vel"][1],m["vel"][2]);
+                mesh.physicsImpostor.setLinearVelocity(vel);
+                /*console.log(mesh.position);*/
+            });
+        }, UPDATEINTERVAL);
+    }
+
+    function dataClient(data){
+        data = JSON.parse(data);
+        /*console.log("in: ", data);*/
+        jitterBuffer[data["id"] % 10] = data;
+        jitterMax = Math.max(jitterMax, data["id"]);
+        /*scene.getMeshByName("sphere").position = data["p"];*/
+    }
+
+    function dataServer(data){
+        //server receives no data
+    }
+
+    const peer = new Peer();
+    peer.connectClient = connectClient;
+    peer.dataClient    = dataClient;
+    peer.connectServer = connectServer;
+    peer.dataServer    = dataServer;
+    peer.connect();
 
 });

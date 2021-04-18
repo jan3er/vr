@@ -48,7 +48,10 @@ class PhysicsSceneWithAmmo implements CreateSceneClass {
         sphere.physicsImpostor = new PhysicsImpostor(sphere, PhysicsImpostor.SphereImpostor, { mass: 2, restitution: 0.9}, scene);
     
         // Move the sphere upward 1/2 its height
-        sphere.position.y = 5;
+        sphere.position.y = 1;
+
+        const vel = new Vector3(0,10,0);
+        sphere.physicsImpostor.setLinearVelocity(vel);
     
         // Our built-in 'ground' shape.
         const ground = GroundBuilder.CreateGround(

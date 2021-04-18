@@ -53,7 +53,7 @@ export class Ball extends PhysicalObject3D {
 }
 
 
-var skipper = 0;
+var skipper = -1;
 
 export default class Game extends GameEngine {
 
@@ -61,7 +61,7 @@ export default class Game extends GameEngine {
         super(options);
         this.physicsEngine = new CannonPhysicsEngine({ gameEngine: this });
         this.physicsEngine.world.gravity.set(0, -1, 0);
-        this.physicsEngine.addBox(10, 0.01, 10, 0, 0);
+        this.physicsEngine.addBox(10, 0.5, 10, 0, 0);
 
         // common code
         this.on('postStep', this.gameLogic.bind(this));
@@ -93,6 +93,7 @@ export default class Game extends GameEngine {
                 console.log(paddles[0].physicsObj.velocity);
                 console.log(paddles[1].physicsObj.position);
                 console.log(paddles[1].physicsObj.velocity);
+                console.log(this.physicsEngine.world.collisionMatrix);
             }
         }
     }
