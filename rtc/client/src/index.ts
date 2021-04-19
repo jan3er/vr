@@ -5,10 +5,6 @@ import { Peer } from "./peer";
 
 const getModuleToLoad = (): string | undefined => location.search.split('scene=')[1];
 
-var jitterBuffer = new Array(10);
-var jitterMax = 0;
-var jitterCurrent = 0;
-var frameId = 0;
 
 export const babylonInit = async () => {
     // get the module to load
@@ -41,8 +37,17 @@ export const babylonInit = async () => {
 babylonInit().then( scene => {
     // scene started rendering, everything is initialized
 
-    const BUFFERDELAY = 0;
-    const UPDATEINTERVAL = 10;
+    const BUFFERDELAY = 1; 
+    const UPDATEINTERVAL = 100;
+    const BUFFERLENGTH = 10;
+
+    var averageGap = 0;
+    var averageMissing = 0;
+
+    var jitterBuffer = new Array(BUFFERLENGTH);
+    var jitterMax = 0;
+    var jitterCurrent = 0;
+    var frameId = 0;
 
     function connectServer(p){
         setInterval(function(){
@@ -65,19 +70,48 @@ babylonInit().then( scene => {
 
     function connectClient(p){
         setInterval(function(){
-            if(jitterMax > jitterCurrent + BUFFERDELAY){
-                jitterCurrent += 1;
+
+            /*var bufferHealth = []*/
+            /*var bufferIds = []*/
+            /*for(var i = 0; i < BUFFERLENGTH; i++){*/
+                /*const content = jitterBuffer[(jitterCurrent + i) % BUFFERLENGTH];*/
+                /*if(content !== undefined && content["id"] >= jitterCurrent){*/
+                    /*bufferHealth.push(1);*/
+                /*} else {*/
+                    /*bufferHealth.push(0);*/
+                /*}*/
+            /*}*/
+            /*console.log(bufferHealth);*/
+
+
+            const SMOOTH_GAP = 0.01
+            averageGap = (1-SMOOTH_GAP) * averageGap + SMOOTH_GAP * (jitterMax - jitterCurrent);
+            if(averageGap > 2*BUFFERDELAY){
+                console.log("the buffer was very full for some time. jump ahead.");
+                jitterCurrent = jitterMax - BUFFERDELAY;
+                averageGap = BUFFERDELAY;
             } else {
-                jitterCurrent += 0;
+                jitterCurrent+=1;
             }
-            /*console.log(jitterCurrent);*/
-            const data = jitterBuffer[jitterCurrent % 10]
 
+            const data = jitterBuffer[jitterCurrent % BUFFERLENGTH]
 
-            /*const data = jitterBuffer[jitterMax % 10]*/
-            /*console.log(jitterMax-jitterCurrent);*/
-            /*jitterCurrent = jitterMax;*/
-            if(data === undefined) return;
+            const SMOOTH_MISSING = 0.01
+            if(data === undefined || data["id"] < jitterCurrent) {
+                console.log("old package was in buffer");
+                averageMissing = SMOOTH_MISSING * 1 + (1-SMOOTH_MISSING) * averageMissing;
+            } else {
+                averageMissing = SMOOTH_MISSING * 0 + (1-SMOOTH_MISSING) * averageMissing;
+            }
+
+            if(averageMissing > 0.5) {
+                console.log("we have been missing more than half of our data for some time. repeat frame.");
+                averageMissing = 0;
+                jitterCurrent-=1;
+            }
+
+            if(data === undefined || data["id"] < jitterCurrent) return;
+
             data["meshes"].forEach(function(m) {
                 /*console.log(m);*/
                 var mesh = scene.getMeshByName(m["name"]);
@@ -93,7 +127,7 @@ babylonInit().then( scene => {
     function dataClient(data){
         data = JSON.parse(data);
         /*console.log("in: ", data);*/
-        jitterBuffer[data["id"] % 10] = data;
+        jitterBuffer[data["id"] % BUFFERLENGTH] = data;
         jitterMax = Math.max(jitterMax, data["id"]);
         /*scene.getMeshByName("sphere").position = data["p"];*/
     }
