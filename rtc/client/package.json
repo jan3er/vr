@@ -6,7 +6,8 @@
     "dependencies": {
         "@babylonjs/core": "5.0.0-alpha.6",
         "@babylonjs/loaders": "5.0.0-alpha.6",
-        "ammo.js": "github:kripken/ammo.js"
+        "ammo.js": "github:kripken/ammo.js",
+        "cannon": "^0.6.2"
     },
     "devDependencies": {
         "@typescript-eslint/eslint-plugin": "^2.30.0",

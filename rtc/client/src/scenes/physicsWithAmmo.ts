@@ -13,6 +13,10 @@ import "@babylonjs/core/Materials/standardMaterial";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { ammoModule, ammoReadyPromise } from "../externals/ammo";
 import { CreateSceneClass } from "../createScene";
+import { CannonJSPlugin } from "@babylonjs/core";
+
+const c = require("cannon");
+
 
 class PhysicsSceneWithAmmo implements CreateSceneClass {
     preTasks = [ammoReadyPromise];
@@ -21,7 +25,8 @@ class PhysicsSceneWithAmmo implements CreateSceneClass {
         // This creates a basic Babylon Scene object (non-mesh)
         const scene = new Scene(engine);
     
-        scene.enablePhysics(null, new AmmoJSPlugin(true, ammoModule));
+        //scene.enablePhysics(null, new AmmoJSPlugin(true, ammoModule));
+        scene.enablePhysics(null, new CannonJSPlugin(null, 10, c));
     
         // This creates and positions a free camera (non-mesh)
         const camera = new ArcRotateCamera("my first camera", 0, Math.PI / 3, 20, new Vector3(0, 0, 0), scene);
@@ -61,6 +66,11 @@ class PhysicsSceneWithAmmo implements CreateSceneClass {
         );
         
         ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.9});
+
+        sphere.physicsImpostor.registerOnPhysicsCollide(ground.physicsImpostor, function(main, collided) {
+            //sphere.material.diffuseColor = new Color3(Math.random(), Math.random(), Math.random());
+            console.log("bang!");
+        });
     
         return scene;
     };
