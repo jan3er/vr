@@ -34,6 +34,7 @@ wss.on('connection', function connection(ws) {
     else if (ws2 === null) {
         console.log("ws2 joined");
         ws2 = ws;
+        ws2.send("somebody will offer you a session soon");
         while(queue.length !== 0){
             ws2.send(queue.shift());    
         }
