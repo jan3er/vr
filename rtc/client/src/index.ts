@@ -6,17 +6,30 @@ import { makeConnection } from "./peer";
 const getModuleToLoad = (): string | undefined => location.search.split('scene=')[1];
 
 
-/*const asdf = async () => {*/
-    /*var p = await makeConnection();*/
-    /*p.on('data', data => console.log(data));*/
-    /*if (p.initiator) {*/
-        /*p.send("a");*/
-        /*p.send("a");*/
-        /*p.send("a");*/
-    /*}*/
-/*}*/
+const a=new AudioContext() // browsers limit the number of concurrent audio contexts, so you better re-use'em
 
-/*asdf();*/
+function beep(vol, freq, duration){
+  const v=a.createOscillator()
+  const u=a.createGain()
+  v.connect(u)
+  v.frequency.value=freq
+  v.type="square"
+  u.connect(a.destination)
+  u.gain.value=vol*0.01
+  v.start(a.currentTime)
+  v.stop(a.currentTime+duration*0.001)
+}
+
+function beep1() {
+    beep(100,440,1);
+}
+
+function beep2() {
+    beep(100,440,10);
+}
+function beep3() {
+    beep(100,220,10);
+}
 
 
 const FRAMES_PER_UPDATE = 10;
@@ -46,7 +59,24 @@ function updateServer(scene, p){
     p.send(JSON.stringify(pack));
 }
 
+
 function updateClient(scene){
+
+
+    jitterCurrent+=1;
+    const SMOOTH_GAP = 0.05
+    /*console.log("--");*/
+    /*console.log("gap:", jitterMax-jitterCurrent);*/
+    averageGap = (1-SMOOTH_GAP) * averageGap + SMOOTH_GAP * (jitterMax - jitterCurrent);
+    if(averageGap > 1.5*BUFFERDELAY){
+        const newtarget = jitterMax - BUFFERDELAY;
+        console.log("the buffer was ahead for some time. jump this many extra steps:", (newtarget - jitterCurrent));
+        beep2();
+        jitterCurrent = Math.max(jitterCurrent, newtarget);
+        averageGap = BUFFERDELAY;
+    } else {
+    }
+
 
     var bufferHealth = []
     for(var i = 0; i < BUFFERLENGTH; i++){
@@ -57,24 +87,17 @@ function updateClient(scene){
             bufferHealth.push(0);
         }
     }
-    console.log(bufferHealth);
+    /*console.log(bufferHealth);*/
 
-    jitterCurrent+=1;
-    const SMOOTH_GAP = 0.05
-    averageGap = (1-SMOOTH_GAP) * averageGap + SMOOTH_GAP * (jitterMax - jitterCurrent);
-    if(averageGap > 1*BUFFERDELAY){
-        const newtarget = jitterMax - BUFFERDELAY;
-        console.log("the buffer was ahead for some time. jump this many extra steps:", (newtarget - jitterCurrent));
-        jitterCurrent = Math.max(jitterCurrent, newtarget);
-        /*averageGap = BUFFERDELAY;*/
-    } else {
-    }
+    /*console.log(jitterCurrent);*/
+    /*console.log(averageGap);*/
 
     const data = jitterBuffer[jitterCurrent % BUFFERLENGTH]
 
     const SMOOTH_MISSING = 0.05
     if(data === undefined || data["id"] < jitterCurrent) {
-        console.log("old package was in buffer");
+        /*console.log("old package was in buffer");*/
+        beep1();
         averageMissing = SMOOTH_MISSING * 1 + (1-SMOOTH_MISSING) * averageMissing;
     } else {
         averageMissing = SMOOTH_MISSING * 0 + (1-SMOOTH_MISSING) * averageMissing;
@@ -82,6 +105,7 @@ function updateClient(scene){
 
     if(averageMissing > 0.5) {
         console.log("we have been missing more than half of our data for some time. repeat frame.");
+        beep3();
         averageMissing = 0;
         jitterCurrent-=1;
     }

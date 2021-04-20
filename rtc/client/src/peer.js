@@ -10,8 +10,11 @@ export function makeConnection(){
             var p = new SimplePeer({
                 initiator: isInitiator,
                 channelConfig: { //an unordered, unreliable channel (i.e., udp)
-                    ordered : false,
-                    maxRetransmits: 0
+                    ordered: false,
+                    maxRetransmits: 0,
+                },
+                config: {
+                    iceTransportPolicy: "all"
                 },
                 trickle: false
             });
@@ -33,6 +36,7 @@ export function makeConnection(){
                 p = makeSimplePeer(false);
             } else {
                 p.signal(JSON.parse(evt.data));
+                console.log(JSON.stringify(JSON.parse(evt.data),null,2));
             }
         };
     });
@@ -87,6 +91,7 @@ export class Peer {
                 p = this.makeSimplePeer(false);
             } else {
                 p.signal(JSON.parse(evt.data));
+                console.log(JSON.stringify(JSON.parse(evt.data),null,2));
             }
         }.bind(this);
     }

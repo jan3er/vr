@@ -24,7 +24,7 @@ class PhysicsSceneWithAmmo implements CreateSceneClass {
         scene.enablePhysics(null, new AmmoJSPlugin(true, ammoModule));
     
         // This creates and positions a free camera (non-mesh)
-        const camera = new ArcRotateCamera("my first camera", 0, Math.PI / 3, 10, new Vector3(0, 0, 0), scene);
+        const camera = new ArcRotateCamera("my first camera", 0, Math.PI / 3, 20, new Vector3(0, 0, 0), scene);
     
         // This targets the camera to scene origin
         camera.setTarget(Vector3.Zero());
