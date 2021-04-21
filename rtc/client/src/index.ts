@@ -1,23 +1,17 @@
 import { Engine } from "@babylonjs/core/Engines/engine";
-import { getSceneModuleWithName } from "./createScene";
 import {Network} from "./network";
-
-const getModuleToLoad = (): string | undefined => location.search.split('scene=')[1];
+import { createScene } from "./scene";
 
 export const babylonInit = async () => {
-    // get the module to load
-    const moduleName = getModuleToLoad();
-    const createSceneModule = await getSceneModuleWithName(moduleName);
-
-    // Execute the pretasks, if defined
-    await Promise.all(createSceneModule.preTasks || []);
+    
     // Get the canvas element
     const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
+
     // Generate the BABYLON 3D engine
     const engine = new Engine(canvas, true);
 
     // Create the scene
-    const scene = await createSceneModule.createScene(engine, canvas);
+    const scene = createScene(engine, canvas);
 
     const network = new Network(scene);
     network.start();
