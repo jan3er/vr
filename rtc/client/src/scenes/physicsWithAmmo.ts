@@ -5,18 +5,13 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { SphereBuilder } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { GroundBuilder } from "@babylonjs/core/Meshes/Builders/groundBuilder";
-import { AmmoJSPlugin } from "@babylonjs/core/Physics/Plugins/ammoJSPlugin";
 import "@babylonjs/core/Physics/physicsEngineComponent";
 
-// If you don't need the standard material you will still need to import it since the scene requires it.
 import "@babylonjs/core/Materials/standardMaterial";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { ammoModule, ammoReadyPromise } from "../externals/ammo";
 import { CreateSceneClass } from "../createScene";
-import { CannonJSPlugin } from "@babylonjs/core";
-
-const c = require("cannon");
-
+import { CannonJSPlugin, Color3, StandardMaterial } from "@babylonjs/core";
 
 class PhysicsSceneWithAmmo implements CreateSceneClass {
     preTasks = [ammoReadyPromise];
@@ -26,7 +21,7 @@ class PhysicsSceneWithAmmo implements CreateSceneClass {
         const scene = new Scene(engine);
     
         //scene.enablePhysics(null, new AmmoJSPlugin(true, ammoModule));
-        scene.enablePhysics(null, new CannonJSPlugin(null, 10, c));
+        scene.enablePhysics(null, new CannonJSPlugin(null, 10, require("cannon")));
     
         // This creates and positions a free camera (non-mesh)
         const camera = new ArcRotateCamera("my first camera", 0, Math.PI / 3, 20, new Vector3(0, 0, 0), scene);
@@ -49,6 +44,10 @@ class PhysicsSceneWithAmmo implements CreateSceneClass {
             { diameter: 2, segments: 32 },
             scene
         );
+
+        var myMaterial = new StandardMaterial("myMaterial", scene);
+        myMaterial.diffuseColor = new Color3(1, 0, 1);
+        sphere.material = myMaterial;
     
         sphere.physicsImpostor = new PhysicsImpostor(sphere, PhysicsImpostor.SphereImpostor, { mass: 2, restitution: 0.9}, scene);
     
@@ -67,9 +66,9 @@ class PhysicsSceneWithAmmo implements CreateSceneClass {
         
         ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.9});
 
-        sphere.physicsImpostor.registerOnPhysicsCollide(ground.physicsImpostor, function(main, collided) {
-            //sphere.material.diffuseColor = new Color3(Math.random(), Math.random(), Math.random());
-            console.log("bang!");
+        sphere.physicsImpostor.registerOnPhysicsCollide(ground.physicsImpostor, (main, collided) => {
+            myMaterial.diffuseColor = new Color3(Math.random(), Math.random(), Math.random());
+            //console.log("bang!");
         });
     
         return scene;
