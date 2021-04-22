@@ -10,15 +10,20 @@ export const babylonInit = async () => {
     // Generate the BABYLON 3D engine
     const engine = new Engine(canvas, true);
 
+
     // Create the scene
     const scene = createScene(engine, canvas);
 
     const network = new Network(scene);
     network.start();
 
+    scene.registerBeforeRender(function () {
+        network.render()
+	})
+
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
-        network.render();
+        //network.render();
         scene.render();
     });
 

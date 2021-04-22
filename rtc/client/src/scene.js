@@ -29,10 +29,10 @@ function createGround(scene){
         [new Vector3(1,height,width),  new Vector3(-length/2 +0.5,height/2,0)],
     ].forEach(coord => {
         const wall = MeshBuilder.CreateBox("", {
-            width : coord[0]._x, height : coord[0]._y, depth : coord[0]._z
+            width : coord[0].x, height : coord[0].y, depth : coord[0].z
         }, scene);
         wall.position = coord[1];
-        wall.physicsImpostor = new PhysicsImpostor(wall, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 1});
+        wall.physicsImpostor = new PhysicsImpostor(wall, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 1, friction: 0});
         walls.push(wall);
     });
     return walls;
@@ -61,18 +61,20 @@ export function createScene(engine, canvas){
     light.intensity = 0.7;
 
     //Our built-in 'sphere' shape.
-    const sphere = SphereBuilder.CreateSphere(
-        "sphere",
-        { diameter: 3, segments: 32 },
-        scene
-    );
-    sphere.physicsImpostor = new PhysicsImpostor(sphere, PhysicsImpostor.SphereImpostor, { mass: 2, restitution: 1}, scene);
+    
+    // const sphere = SphereBuilder.CreateSphere(
+    //     "sphere",
+    //     { diameter: 3, segments: 32 },
+    //     scene
+    // );
+    // sphere.physicsImpostor = new PhysicsImpostor(sphere, PhysicsImpostor.SphereImpostor, { mass: 2, restitution: 1}, scene);
 
 
-    // const sphere = MeshBuilder.CreateBox("sphere", {
-    //     width : 3, height : 3, depth : 3
-    // }, scene);
-    // sphere.physicsImpostor = new PhysicsImpostor(sphere, PhysicsImpostor.BoxImpostor, { mass: 2, restitution: 1}, scene);
+    const sphere = MeshBuilder.CreateBox("sphere", {
+        width : 3, height : 3, depth : 3, 
+    }, scene);
+    //sphere.rotation = new Vector3(1, 1, 1);
+    sphere.physicsImpostor = new PhysicsImpostor(sphere, PhysicsImpostor.BoxImpostor, { mass: 2, restitution: 1, friction: 0}, scene);
     
     
     sphere.position.y = 2;
@@ -102,7 +104,7 @@ export function createScene(engine, canvas){
         { diameter: 2, segments: 32 },
         scene
     );
-    paddle1.physicsImpostor = new PhysicsImpostor(paddle1, PhysicsImpostor.SphereImpostor, { mass: 0, restitution: 0.9}, scene);
+    paddle1.physicsImpostor = new PhysicsImpostor(paddle1, PhysicsImpostor.SphereImpostor, { mass: 0, restitution: 1}, scene);
     paddle1.material = new StandardMaterial("pad1", scene);;
     paddle1.material.diffuseColor = new Color3(1, 0, 1);
 
@@ -112,7 +114,7 @@ export function createScene(engine, canvas){
         { diameter: 2, segments: 32 },
         scene
     );
-    paddle2.physicsImpostor = new PhysicsImpostor(paddle2, PhysicsImpostor.SphereImpostor, { mass: 0, restitution: 0.9}, scene);
+    paddle2.physicsImpostor = new PhysicsImpostor(paddle2, PhysicsImpostor.SphereImpostor, { mass: 0, restitution: 1}, scene);
     paddle2.material = new StandardMaterial("pad2", scene);;
     paddle2.material.diffuseColor = new Color3(1, 0, 1);
 

@@ -1,11 +1,16 @@
 import { makeConnection } from "./makeConnection";
 import {beep1, beep2, beep3} from "./util";
 import { Vector3, Color3 } from "@babylonjs/core";
+import { Axis, Quaternion } from "@babylonjs/core";
 
 //TODO: we probably want different update rates for ball and paddle. paddle every frame and ball less frequent?
 const FRAMES_PER_UPDATE = 1;  //how often should the physics state be sent
 const BUFFER_DELAY = 10       //how many packets should the buffer be ahead
 const BUFFER_LENGTH = 20;     //some number. 10 is probably large enough
+
+function dummy(){
+    return 5;
+}
 
 export class Network {
     
@@ -90,7 +95,7 @@ export class Network {
             paddle.position = pos;
 
             const sphere = this.scene.getMeshByName("sphere");
-            if (sphere.position._y > 10 || sphere.position._y < -1) {
+            if (sphere.position.y > 10 || sphere.position.y < -1) {
                 sphere.position = new Vector3(1,2,1);
                 sphere.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
             }
@@ -102,7 +107,7 @@ export class Network {
             paddle.position = pos;
 
             const sphere = this.scene.getMeshByName("sphere");
-            if (sphere.position._y > 10 || sphere.position._y < -1) {
+            if (sphere.position.y > 10 || sphere.position.y < -1) {
                 sphere.position = new Vector3(1,2,1);
                 sphere.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
             }
@@ -119,48 +124,45 @@ export class Network {
     //heper function to get the network data from a mesh
     meshToPackage(mesh) {
         const pos = mesh.position;
-        const rot = mesh.rotation;
+        const quat = mesh.rotationQuaternion;
         const linVel = mesh.physicsImpostor.getLinearVelocity();
         const angVel = mesh.physicsImpostor.getAngularVelocity();
         return {
             name : mesh.name,
             pos : {
-                x : pos._x,
-                y : pos._y,
-                z : pos._z
+                x : pos.x,
+                y : pos.y,
+                z : pos.z
             },
-            rot : {
-                x : rot._x,
-                y : rot._y,
-                z : rot._z
+            quat : {
+                x : quat.x,
+                y : quat.y,
+                z : quat.z,
+                w : quat.w
             },            
             linVel : {
-                x : linVel._x,
-                y : linVel._y,
-                z : linVel._z
+                x : linVel.x,
+                y : linVel.y,
+                z : linVel.z
             },
             angVel : {
-                x : angVel._x,
-                y : angVel._y,
-                z : angVel._z
+                x : angVel.x,
+                y : angVel.y,
+                z : angVel.z
             }
         }
     }
     //helper function to apply the network data to some mesh 
     packageToMesh(pack,mesh) {
         mesh.position = new Vector3(pack.pos.x, pack.pos.y, pack.pos.z);
-        //console.log(pack.rot);
-        //console.log(mesh.rotation);
-        mesh.rotation.x = pack.rot.x;
-        mesh.rotation.y = pack.rot.y;
-        mesh.rotation.z = pack.rot.z;
-        //mesh.rotation = new Vector3(pack.rot.x, pack.rot.y, pack.rot.z);
+        mesh.rotationQuaternion = new Quaternion(pack.quat.x, pack.quat.y, pack.quat.z, pack.quat.w);
         mesh.physicsImpostor.setLinearVelocity(new Vector3(pack.linVel.x, pack.linVel.y, pack.linVel.z));
         mesh.physicsImpostor.setAngularVelocity(new Vector3(pack.angVel.x, pack.angVel.y, pack.angVel.z));
     }
 
     //send local data to remote peer
     sendData(){
+        //console.log(this.meshToPackage(this.scene.getMeshByName("sphere")));
         if(this.p.initiator) {
             this.p.send(JSON.stringify({ 
                 time      : this.timeLocal,
@@ -248,5 +250,3 @@ export class Network {
     }
 
 }
-
-    
