@@ -14,8 +14,9 @@ function dummy(){
 
 export class Network {
     
-    constructor(scene) {
-        this.scene = scene;
+    constructor(world) {
+        this.world = world;
+        this.scene = world.scene;
         this.renderCounter = 0; //the current render frame number. this number is not sent over the network
         this.connected = false; //true if a connection with the peer is established
         this.p = null;          //the peer connection object
@@ -28,8 +29,8 @@ export class Network {
         this.averageMissing = 0;  //rolling average of fraction of packages that did not arrive on time
 
         //apply updates on ball only if local authority is greater than remote authority
-        this.localAuthority = 0;
-        this.remoteAuthority = 0;
+        this.localAuthority  = new Array(this.world.spheres.length);
+        this.remoteAuthority = new Array(this.world.spheres.length);
     }
 
     //starts establishing the connection. to be called once at the beginning
@@ -43,31 +44,52 @@ export class Network {
         // }
         
         if(this.p.initiator) {
-            this.localAuthority = 1;
-            this.remoteAuthority = 0;
+            this.localAuthority.fill(1);
+            this.remoteAuthority.fill(0);;
             document.title = "Player 1";
         } else {
-            this.localAuthority = 0;
-            this.remoteAuthority = 1;
+            this.localAuthority.fill(0);
+            this.remoteAuthority.fill(1);;
             document.title = "Player 2";
         }
+        
+        console.log("local/remote" + this.localAuthority + "/" + this.remoteAuthority);
+
+
 
         this.p.on('data', data => this.receiveData(data));
         this.connected = true;
 
         var remotePaddle;
         var localPaddle;
-        const sphere = this.scene.getMeshByName("sphere");
         if(this.p.initiator) {
-            localPaddle   = this.scene.getMeshByName("paddle1");
-            remotePaddle  = this.scene.getMeshByName("paddle2");
+            localPaddle   = this.world.paddle1;
+            remotePaddle  = this.world.paddle2;
         } else {
-            remotePaddle  = this.scene.getMeshByName("paddle1");
-            localPaddle   = this.scene.getMeshByName("paddle2");
+            remotePaddle  = this.world.paddle1;
+            localPaddle   = this.world.paddle2;
         }
-        sphere.physicsImpostor.registerOnPhysicsCollide(localPaddle.physicsImpostor, (main, collided) => {
-            this.localAuthority = this.remoteAuthority + 1;
-        });
+        for(let i = 0; i < this.world.spheres.length; i++){
+            this.world.spheres[i].physicsImpostor.registerOnPhysicsCollide(localPaddle.physicsImpostor, (main, collided) => {
+                this.localAuthority[i] = this.remoteAuthority[i] + 1;
+            });
+        }
+
+        for(let i = 0; i < this.world.spheres.length; i++){
+            for(let j = 0; j < this.world.spheres.length; j++){
+                if(i == j) continue;
+                this.world.spheres[i].physicsImpostor.registerOnPhysicsCollide(this.world.spheres[j].physicsImpostor, (main, collided) => {
+                    if(this.localAuthority[i] > this.remoteAuthority[i] &&
+                        this.world.spheres[i].physicsImpostor.getAngularVelocity().length() > 
+                        this.world.spheres[j].physicsImpostor.getAngularVelocity().length()) 
+                    {
+                        this.localAuthority[j] = this.remoteAuthority[j] + 1;
+                    }
+                });
+            }
+        }
+
+
 
         //the default physics filter group is 1. we want the ball to not collide with the remote paddle
         remotePaddle.physicsImpostor._physicsBody.collisionFilterGroup = 2;
@@ -85,33 +107,41 @@ export class Network {
             this.processData();
             this.timeLocal += 1;
         }
+
+        // if(this.connected && this.renderCounter % 20 === 0) {
+        //     console.log("---");
+        //     console.log(this.world.spheres[0].physicsImpostor.getAngularVelocity());
+
+        //     console.log(this.world.spheres[0].physicsImpostor.getAngularVelocity().length());
+
+        //     console.log(this.world.spheres[0].physicsImpostor.getLinearVelocity());
+
+        //     console.log(this.world.spheres[0].physicsImpostor.getLinearVelocity().length());
+        // }
+        
+
+        if(this.connected){
+            
+            const speed = 0.5;
+            if(this.p.initiator){
+                const pos = new Vector3(2.5*Math.sin(speed*this.renderCounter/25), 0, 5 + 3.5*Math.sin(speed*this.renderCounter/17));
+                this.world.paddle1.position = pos;
+            } else {
+                const pos = new Vector3(2.5*Math.sin(speed*this.renderCounter/18), 0, -5 + 3.5*Math.sin(speed*this.renderCounter/27));
+                this.world.paddle2.position = pos;
+            }
+
+            for(let i = 0; i < this.world.spheres.length; i++){
+                const sphere = this.world.spheres[i];
+                if (sphere.position.y > 10 || sphere.position.y < -1) {
+                    sphere.position = new Vector3(1,2,1);
+                    sphere.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
+                }
+            }
+        }
+
+
         this.renderCounter += 1;
-
-        const speed = 1;
-        if(this.connected && this.p.initiator) {
-            
-            const paddle = this.scene.getMeshByName("paddle1");
-            const pos = new Vector3(2.5*Math.sin(speed*this.renderCounter/25), 1, 5 + 3.5*Math.sin(speed*this.renderCounter/17));
-            paddle.position = pos;
-
-            const sphere = this.scene.getMeshByName("sphere");
-            if (sphere.position.y > 10 || sphere.position.y < -1) {
-                sphere.position = new Vector3(1,2,1);
-                sphere.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
-            }
-        }
-        if(this.connected && !this.p.initiator) {
-            
-            const paddle = this.scene.getMeshByName("paddle2");
-            const pos = new Vector3(2.5*Math.sin(speed*this.renderCounter/18), 1, -5 + 3.5*Math.sin(speed*this.renderCounter/27));
-            paddle.position = pos;
-
-            const sphere = this.scene.getMeshByName("sphere");
-            if (sphere.position.y > 10 || sphere.position.y < -1) {
-                sphere.position = new Vector3(1,2,1);
-                sphere.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
-            }
-        }
     }
 
     //called whenever some new data from the peer comes in
@@ -160,21 +190,35 @@ export class Network {
         mesh.physicsImpostor.setAngularVelocity(new Vector3(pack.angVel.x, pack.angVel.y, pack.angVel.z));
     }
 
+    isAtRest(mesh){
+        //there is some vibration on the objects. therefore the linear velocity is not zero at rest
+        //maybe this can be solved by increasing the number of iterations of the solver
+        //https://sbcode.net/threejs/physics-cannonjs/
+        
+        // const speed = mesh.physicsImpostor.getLinearVelocity().length() + mesh.physicsImpostor.getAngularVelocity().length();
+        const speed = mesh.physicsImpostor.getAngularVelocity().length();
+        return speed <= 0.05;
+    }    
+    isAtRest2(mesh){
+        const speed = mesh.physicsImpostor.getLinearVelocity().length() + mesh.physicsImpostor.getAngularVelocity().length();
+        //const speed = mesh.physicsImpostor.getAngularVelocity().length();
+        return speed <= 0.05;
+    }
     //send local data to remote peer
     sendData(){
         //console.log(this.meshToPackage(this.scene.getMeshByName("sphere")));
         if(this.p.initiator) {
             this.p.send(JSON.stringify({ 
                 time      : this.timeLocal,
-                paddle    : this.meshToPackage(this.scene.getMeshByName("paddle1")),
-                sphere    : this.meshToPackage(this.scene.getMeshByName("sphere")),
+                paddle    : this.meshToPackage(this.world.paddle1),
+                spheres   : this.world.spheres.map(sphere => this.meshToPackage(sphere)),
                 authority : this.localAuthority
             }));
         } else {
             this.p.send(JSON.stringify({ 
                 time      : this.timeLocal,
-                paddle    : this.meshToPackage(this.scene.getMeshByName("paddle2")),
-                sphere    : this.meshToPackage(this.scene.getMeshByName("sphere")),
+                paddle    : this.meshToPackage(this.world.paddle2),
+                spheres   : this.world.spheres.map(sphere => this.meshToPackage(sphere)),
                 authority : this.localAuthority
             }));
         }
@@ -197,7 +241,7 @@ export class Network {
         }
     
         var bufferHealth = []
-        for(var i = 0; i < BUFFER_LENGTH; i++){
+        for(let i = 0; i < BUFFER_LENGTH; i++){
             const data = this.buffer[(this.timeRemote + i) % BUFFER_LENGTH];
             if(data !== undefined && data.time >= this.timeRemote){
                 bufferHealth.push(1);
@@ -228,24 +272,32 @@ export class Network {
     
         var remotePaddle;
         var localPaddle;
-        const sphere = this.scene.getMeshByName("sphere");
         if(this.p.initiator) {
-            localPaddle   = this.scene.getMeshByName("paddle1");
-            remotePaddle  = this.scene.getMeshByName("paddle2");
+            localPaddle   = this.world.paddle1;
+            remotePaddle  = this.world.paddle2;
         } else {
-            remotePaddle  = this.scene.getMeshByName("paddle1");
-            localPaddle   = this.scene.getMeshByName("paddle2");
+            remotePaddle  = this.world.paddle1;
+            localPaddle   = this.world.paddle2;
         }
         this.packageToMesh(data.paddle, remotePaddle);
 
         //only apply the ball position if the remote authority is higher
         //visualize it by making ball red if its under our control
-        this.remoteAuthority = this.buffer[this.timeRemoteMax % BUFFER_LENGTH].authority;
-        if(this.localAuthority < this.remoteAuthority){
-            this.packageToMesh(data.sphere, sphere);
-            sphere.material.diffuseColor = new Color3(0.9,0.9,0.9);
-        } else {
-            sphere.material.diffuseColor = new Color3(1,0,0);
+        for(let i = 0; i < this.world.spheres.length; i++){
+            this.remoteAuthority[i] = this.buffer[this.timeRemoteMax % BUFFER_LENGTH].authority[i];
+        }
+        //console.log("remote", this.remoteAuthority, "local", this.localAuthority);
+        for(let i = 0; i < this.world.spheres.length; i++) {
+            if(this.localAuthority[i] < this.remoteAuthority[i]){
+                this.packageToMesh(data.spheres[i], this.world.spheres[i]);
+                this.world.spheres[i].material.diffuseColor = new Color3(0.9,0.9,0.9);
+            } else {
+                this.world.spheres[i].material.diffuseColor = new Color3(1,0,0);
+            }
+            if(this.isAtRest2(this.world.spheres[i])){
+                this.world.spheres[i].material.diffuseColor = new Color3(0,0,0);
+            }
+
         }
     }
 

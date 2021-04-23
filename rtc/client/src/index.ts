@@ -1,6 +1,6 @@
 import { Engine } from "@babylonjs/core/Engines/engine";
 import {Network} from "./network";
-import { createScene } from "./scene";
+import { World } from "./world";
 
 export const babylonInit = async () => {
     
@@ -12,19 +12,20 @@ export const babylonInit = async () => {
 
 
     // Create the scene
-    const scene = createScene(engine, canvas);
+    const world = new World(engine, canvas);
+    world.init();
 
-    const network = new Network(scene);
+    const network = new Network(world);
     network.start();
 
-    scene.registerBeforeRender(function () {
+    world.scene.registerBeforeRender(function () {
         network.render()
 	})
 
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
         //network.render();
-        scene.render();
+        world.scene.render();
     });
 
     // Watch for browser/canvas resize events
@@ -32,7 +33,7 @@ export const babylonInit = async () => {
         engine.resize();
     });
 
-    return scene;
+    return world.scene;
 }
 
 
