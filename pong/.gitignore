@@ -1,8 +1,0 @@
-node_modules
-dist
-dist-server
-npm-debug.log
-.env
-stats.json
-server.trace
-.DS_Store

@@ -1,7 +1,0 @@
-getting started
-- install latest node.js (i installed version 14)
-- npm install #this installs all the dependencies
-- npm start #this runs the server
-- open localhost:3000 in chrome (seems to have better performance than firefox)
-- emulate the headset in your browser: https://chrome.google.com/webstore/detail/webvr-api-emulation/gbdnpaebafagioggnhkacnaaahpiefil?hl=en
-- use https://ngrok.com/ to expose your local node server to the internet so you can access it on your oculus
