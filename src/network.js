@@ -36,12 +36,6 @@ export class Network {
     //starts establishing the connection. to be called once at the beginning
     async start() {
         this.p = await makeConnection();
-    
-        // if(this.p.initiator) { //server bumps up the ball every once in a while
-        //     setInterval(function(){
-        //         this.scene.getMeshByName("sphere").physicsImpostor.setLinearVelocity(new Vector3(0,7,0));
-        //     }.bind(this), 5118);
-        // }
         
         if(this.p.initiator) {
             this.localAuthority.fill(1);
@@ -52,10 +46,6 @@ export class Network {
             this.remoteAuthority.fill(1);;
             document.title = "Player 2";
         }
-        
-        console.log("local/remote" + this.localAuthority + "/" + this.remoteAuthority);
-
-
 
         this.p.on('data', data => this.receiveData(data));
         this.connected = true;
@@ -129,6 +119,14 @@ export class Network {
             } else {
                 const pos = new Vector3(2.5*Math.sin(speed*this.renderCounter/18), 0, -5 + 3.5*Math.sin(speed*this.renderCounter/27));
                 this.world.paddle2.position = pos;
+            }
+
+            if(this.world.xr.input.controllers.length != 0){
+                const pos = this.world.xr.input.controllers[0].grip.position;
+                // if(this.renderCounter % 400 == 0){
+                //     console.log(this.world.xr);
+                // }
+                this.world.paddle1.position = pos;
             }
 
             for(let i = 0; i < this.world.spheres.length; i++){
@@ -231,14 +229,13 @@ export class Network {
         //console.log("gap:", this.jitterMax-this.jitterCurrent);
         this.averageGap = (1-SMOOTH_GAP) * this.averageGap + SMOOTH_GAP * (this.timeRemoteMax - this.timeRemote);
         //console.log(this.averageGap);
-        if(this.averageGap > 1.5*BUFFER_DELAY){
+        if(this.averageGap > 1.5*BUFFER_DELAY || this.averageGap < -5*BUFFER_DELAY){
             const newtarget = this.timeRemoteMax - BUFFER_DELAY;
             console.log("the buffer was ahead for some time. jump this many extra steps:", (newtarget - this.timeRemote));
             beep2();
-            this.timeRemote = Math.max(this.timeRemote, newtarget);
+            this.timeRemote = newtarget; //Math.max(this.timeRemote, newtarget);
             this.averageGap = BUFFER_DELAY;
-        } else {
-        }
+        } 
     
         var bufferHealth = []
         for(let i = 0; i < BUFFER_LENGTH; i++){

@@ -13,7 +13,7 @@ export const babylonInit = async () => {
 
     // Create the scene
     const world = new World(engine, canvas);
-    world.init();
+    await world.init();
 
     const network = new Network(world);
     network.start();
@@ -33,10 +33,14 @@ export const babylonInit = async () => {
         engine.resize();
     });
 
-    return world.scene;
+    return world;
 }
 
 
-babylonInit().then( scene => {
+babylonInit().then( world => {
+
+    // console.log(world.xr);
+    // world.xr.baseExperience.sessionManager.runXRRenderLoop();
+    // console.log(world.xr);
 
 });

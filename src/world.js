@@ -10,7 +10,11 @@ import "@babylonjs/core/Physics/physicsEngineComponent";
 import "@babylonjs/core/Materials/standardMaterial";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { CannonJSPlugin, Color3, MeshBuilder, StandardMaterial } from "@babylonjs/core";
+import '@babylonjs/loaders/';
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 export class World
 {
@@ -53,7 +57,7 @@ export class World
         //return walls;
     }
 
-    init(){
+    async init(){
         // This creates a basic Babylon Scene object (non-mesh)
         this.scene = new Scene(this.engine);
 
@@ -73,6 +77,9 @@ export class World
 
         // Default intensity is 1. Let's dim the light a small amount
         light.intensity = 0.7;
+
+        this.xr = await this.scene.createDefaultXRExperienceAsync();
+    
 
         // add the meshes for the ground and borders
         this.initGround();
