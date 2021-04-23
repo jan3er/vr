@@ -9,7 +9,7 @@ import * as SimplePeer from './simplepeer.min.js';
 export function makeConnection() {
     return new Promise(function(resolve, reject) {
 
-        const ws = new WebSocket("ws://vr-matchmaker.herokuapp.com");
+        const ws = new WebSocket("wss://vr-matchmaker.herokuapp.com");
 
         function makeSimplePeer(isInitiator) {
             var p = new SimplePeer({
