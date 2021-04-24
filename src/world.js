@@ -4,17 +4,15 @@ import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { SphereBuilder } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
-import { GroundBuilder } from "@babylonjs/core/Meshes/Builders/groundBuilder";
-import "@babylonjs/core/Physics/physicsEngineComponent";
+import "@babylonjs/core";
 
 import "@babylonjs/core/Materials/standardMaterial";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { CannonJSPlugin, Color3, MeshBuilder, StandardMaterial } from "@babylonjs/core";
 import '@babylonjs/loaders/';
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+import * as BABYLON from "@babylonjs/core";
+import { walkUpBindingElementsAndPatterns } from "typescript";
 
 export class World
 {
@@ -35,9 +33,9 @@ export class World
     initGround(){
         const length = 10; //diameter of the area
         const width = 20; //diameter of the area
-        const height = 4;  //height of the walls
+        const height = 0.5;  //height of the walls
     
-        //var walls = [];
+        var walls = [];
     
         //coordinates of our 5 walls. First entry is width,height,depth. second is x,y,z
         [
@@ -52,9 +50,9 @@ export class World
             }, this.scene);
             wall.position = coord[1];
             wall.physicsImpostor = new PhysicsImpostor(wall, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: this.restitutionGround, friction: this.friction});
-            //walls.push(wall);
+            walls.push(wall);
         });
-        //return walls;
+        return walls;
     }
 
     async init(){
@@ -78,11 +76,40 @@ export class World
         // Default intensity is 1. Let's dim the light a small amount
         light.intensity = 0.7;
 
-        this.xr = await this.scene.createDefaultXRExperienceAsync();
+        // add the meshes for the ground and borders
+        const walls = this.initGround();
+
+        this.xr = await this.scene.createDefaultXRExperienceAsync({
+            floorMeshes : walls,
+            uiOptions: {
+                //sessionMode: 'local'
+            }
+        });
+        //const xrHelper = await BABYLON.WebXRExperienceHelper.CreateAsync(this.scene);
+        //const sessionManager = await xrHelper.enterXRAsync("immersive-vr", "unbounded" );
+
+        console.log(this.xr);
+        // this.xr.baseExperience.onStateChangedObservable.add((state) => {
+        //     switch (state) {
+        //         case BABYLON.WebXRState.IN_XR:
+        //             // XR is initialized and already submitted one frame
+
+        //             console.log(this.xr.baseExperience.sessionManager.referenceSpace);
+
+        //         case BABYLON.WebXRState.ENTERING_XR:
+        //             // xr is being initialized, enter XR request was made
+        //             //this.xr.baseExperience.camera.position = new Vector3(0,1,0);
+
+
+        //         case BABYLON.WebXRState.EXITING_XR:
+        //             // xr exit request was made. not yet done.
+        //         case BABYLON.WebXRState.NOT_IN_XR:
+        //             // self explanatory - either out or not yet in XR
+        //     }
+        // });
     
 
-        // add the meshes for the ground and borders
-        this.initGround();
+ 
 
         for(let i = 0; i < this.NUM_SPHERES; i++){
             const sphere = MeshBuilder.CreateBox("sphere", {
@@ -106,7 +133,7 @@ export class World
         //the paddle
         this.paddle1 = SphereBuilder.CreateSphere(
             "paddle1",
-            { diameter: 2, segments: 32 },
+            { diameter: 0.5, segments: 32 },
             this.scene
         );
         this.paddle1.physicsImpostor = new PhysicsImpostor(this.paddle1, PhysicsImpostor.SphereImpostor, { mass: 0, restitution: this.restitutionSphere}, this.scene);
@@ -116,7 +143,7 @@ export class World
 
         this.paddle2 = SphereBuilder.CreateSphere(
             "paddle2",
-            { diameter: 2, segments: 32 },
+            { diameter: 0.5, segments: 32 },
             this.scene
         );
         this.paddle2.physicsImpostor = new PhysicsImpostor(this.paddle2, PhysicsImpostor.SphereImpostor, { mass: 0, restitution: this.restitutionSphere}, this.scene);

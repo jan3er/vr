@@ -31,6 +31,7 @@
         "start": "npx webpack serve --config webpack.dev.js --open /usr/bin/chromium-browser",
         "build": "npx webpack --config webpack.prod.js",
         "deploy": "npm run build && gh-pages -d dist",
+        "deployOnly": "gh-pages -d dist",
         "lint": "npx eslint . --ext .ts,.tsx"
     }
 }

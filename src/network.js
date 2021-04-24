@@ -121,14 +121,6 @@ export class Network {
                 this.world.paddle2.position = pos;
             }
 
-            if(this.world.xr.input.controllers.length != 0){
-                const pos = this.world.xr.input.controllers[0].grip.position;
-                // if(this.renderCounter % 400 == 0){
-                //     console.log(this.world.xr);
-                // }
-                this.world.paddle1.position = pos;
-            }
-
             for(let i = 0; i < this.world.spheres.length; i++){
                 const sphere = this.world.spheres[i];
                 if (sphere.position.y > 10 || sphere.position.y < -1) {
@@ -136,9 +128,18 @@ export class Network {
                     sphere.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
                 }
             }
+
+            if(this.world.xr.input.controllers.length != 0){
+                const pos = this.world.xr.input.controllers[0].grip.position;
+                if(this.p.initiator){
+                    this.world.paddle1.position = pos;
+                } else {
+                    this.world.paddle2.position = pos;
+                }
+            }
         }
 
-
+        
         this.renderCounter += 1;
     }
 
@@ -223,47 +224,50 @@ export class Network {
     }
 
     processData(){
-        this.timeRemote+=1;
-        const SMOOTH_GAP = 0.05
-        //console.log("--");
-        //console.log("gap:", this.jitterMax-this.jitterCurrent);
-        this.averageGap = (1-SMOOTH_GAP) * this.averageGap + SMOOTH_GAP * (this.timeRemoteMax - this.timeRemote);
-        //console.log(this.averageGap);
-        if(this.averageGap > 1.5*BUFFER_DELAY || this.averageGap < -5*BUFFER_DELAY){
-            const newtarget = this.timeRemoteMax - BUFFER_DELAY;
-            console.log("the buffer was ahead for some time. jump this many extra steps:", (newtarget - this.timeRemote));
-            beep2();
-            this.timeRemote = newtarget; //Math.max(this.timeRemote, newtarget);
-            this.averageGap = BUFFER_DELAY;
-        } 
+        // this.timeRemote+=1;
+        // const SMOOTH_GAP = 0.05
+        // //console.log("--");
+        // //console.log("gap:", this.jitterMax-this.jitterCurrent);
+        // this.averageGap = (1-SMOOTH_GAP) * this.averageGap + SMOOTH_GAP * (this.timeRemoteMax - this.timeRemote);
+        // //console.log(this.averageGap);
+        // if(this.averageGap > 1.5*BUFFER_DELAY || this.averageGap < -5*BUFFER_DELAY){
+        //     const newtarget = this.timeRemoteMax - BUFFER_DELAY;
+        //     console.log("the buffer was ahead for some time. jump this many extra steps:", (newtarget - this.timeRemote));
+        //     beep2();
+        //     this.timeRemote = newtarget; //Math.max(this.timeRemote, newtarget);
+        //     this.averageGap = BUFFER_DELAY;
+        // } 
     
-        var bufferHealth = []
-        for(let i = 0; i < BUFFER_LENGTH; i++){
-            const data = this.buffer[(this.timeRemote + i) % BUFFER_LENGTH];
-            if(data !== undefined && data.time >= this.timeRemote){
-                bufferHealth.push(1);
-            } else {
-                bufferHealth.push(0);
-            }
-        }
+        // var bufferHealth = []
+        // for(let i = 0; i < BUFFER_LENGTH; i++){
+        //     const data = this.buffer[(this.timeRemote + i) % BUFFER_LENGTH];
+        //     if(data !== undefined && data.time >= this.timeRemote){
+        //         bufferHealth.push(1);
+        //     } else {
+        //         bufferHealth.push(0);
+        //     }
+        // }
     
-        const data = this.buffer[this.timeRemote % BUFFER_LENGTH]
+        // const data = this.buffer[this.timeRemote % BUFFER_LENGTH];
     
-        const SMOOTH_MISSING = 0.05
-        if(data === undefined || data.time < this.timeRemote) {
-            /*console.log("old package was in buffer");*/
-            beep1();
-            this.averageMissing = SMOOTH_MISSING * 1 + (1-SMOOTH_MISSING) * this.averageMissing;
-        } else {
-            this.averageMissing = SMOOTH_MISSING * 0 + (1-SMOOTH_MISSING) * this.averageMissing;
-        }
+        // const SMOOTH_MISSING = 0.05
+        // if(data === undefined || data.time < this.timeRemote) {
+        //     /*console.log("old package was in buffer");*/
+        //     beep1();
+        //     this.averageMissing = SMOOTH_MISSING * 1 + (1-SMOOTH_MISSING) * this.averageMissing;
+        // } else {
+        //     this.averageMissing = SMOOTH_MISSING * 0 + (1-SMOOTH_MISSING) * this.averageMissing;
+        // }
     
-        if(this.averageMissing > 0.5) {
-            console.log("we have been missing more than half of our data for some time. repeat frame.");
-            beep3();
-            this.averageMissing = 0;
-            this.timeRemote-=1;
-        }
+        // if(this.averageMissing > 0.5) {
+        //     console.log("we have been missing more than half of our data for some time. repeat frame.");
+        //     beep3();
+        //     this.averageMissing = 0;
+        //     this.timeRemote-=1;
+        // }
+
+        this.timeRemote = this.timeRemoteMax;
+        const data = this.buffer[this.timeRemote % BUFFER_LENGTH];
     
         if(data === undefined || data.time < this.timeRemote) return;
     
