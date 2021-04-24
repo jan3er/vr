@@ -114,23 +114,23 @@ export class Network {
             
             const speed = 0.5;
             if(this.p.initiator){
-                const pos = new Vector3(2.5*Math.sin(speed*this.renderCounter/25), 0, 5 + 3.5*Math.sin(speed*this.renderCounter/17));
+                const pos = new Vector3(0.7*Math.sin(speed*this.renderCounter/25), -0.1, 0.7*Math.sin(speed*this.renderCounter/17));
                 this.world.paddle1.position = pos;
             } else {
-                const pos = new Vector3(2.5*Math.sin(speed*this.renderCounter/18), 0, -5 + 3.5*Math.sin(speed*this.renderCounter/27));
+                const pos = new Vector3(0.7*Math.sin(speed*this.renderCounter/18), -0.1, 0.7*Math.sin(speed*this.renderCounter/27));
                 this.world.paddle2.position = pos;
             }
 
             for(let i = 0; i < this.world.spheres.length; i++){
                 const sphere = this.world.spheres[i];
                 if (sphere.position.y > 10 || sphere.position.y < -1) {
-                    sphere.position = new Vector3(1,2,1);
+                    sphere.position = new Vector3(0,2,0);
                     sphere.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
                 }
             }
 
             if(this.world.xr.input.controllers.length != 0){
-                const pos = this.world.xr.input.controllers[0].grip.position;
+                const pos = this.world.xr.input.controllers[1].grip.position;
                 if(this.p.initiator){
                     this.world.paddle1.position = pos;
                 } else {
