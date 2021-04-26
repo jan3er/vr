@@ -1,0 +1,6 @@
+https://developer.oculus.com/documentation/oculus-browser/browser-remote-debugging/
+wireless debugging and loading
+adb tcpip 5555
+adb connect 192.168.0.150
+open in chrome chrome://inspect/#devices
+activate port forwarding localhost:8080

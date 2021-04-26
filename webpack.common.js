@@ -5,22 +5,24 @@ const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const webpack = require('webpack');
 
 // App directory
-const appDirectory = fs.realpathSync(process.cwd());
+//const appDirectory = fs.realpathSync(process.cwd());
 
 module.exports = {
-    entry: path.resolve(appDirectory, "src/index.ts"),
+    //entry: path.resolve(appDirectory, "src/index.ts"),
+    entry: __dirname + "/src/index.ts",
     output: {
-        //filename: "js/babylonBundle.js",
-        filename: '[name].[contenthash].js',
-        path: path.resolve("./dist/"),
+        //filename: '[name].[contenthash].js',
+        filename: 'bundle.js',
+        //path: path.resolve("./dist/"),
+        path: __dirname + "/dist",
     },
-    resolve: {
-        extensions: [".ts", ".js"],
-        fallback: {
-            fs: false,
-            path: false, // require.resolve("path-browserify")
-        },
-    },
+    //resolve: {
+        //extensions: [".ts", ".js"],
+        //fallback: {
+            //fs: false,
+            //path: false, // require.resolve("path-browserify")
+        //},
+    //},
     module: {
         rules: [
             {
@@ -29,33 +31,33 @@ module.exports = {
                     fullySpecified: false,
                 },
             },
-            {
-                test: /\.(js|mjs|jsx|ts|tsx)$/,
-                loader: "source-map-loader",
-                enforce: "pre",
-            },
+            //{
+                //test: /\.(js|mjs|jsx|ts|tsx)$/,
+                //loader: "source-map-loader",
+                //enforce: "pre",
+            //},
             {
                 test: /\.tsx?$/,
                 loader: "ts-loader",
             },
-            {
-                test: /\.(png|jpg|gif|env|glb|stl)$/i,
-                use: [
-                    {
-                        loader: "url-loader",
-                        options: {
-                            limit: 8192,
-                        },
-                    },
-                ],
-            },
+            //{
+                //test: /\.(png|jpg|gif|env|glb|stl)$/i,
+                //use: [
+                    //{
+                        //loader: "url-loader",
+                        //options: {
+                            //limit: 8192,
+                        //},
+                    //},
+                //],
+            //},
         ],
     },
     plugins: [
-        new CleanWebpackPlugin(),
+        //new CleanWebpackPlugin(),
         new HtmlWebpackPlugin({
-            inject: true,
-            template: path.resolve(appDirectory, "public/index.html"),
+            //inject: true,
+            template: __dirname + "/public/index.html",
         }),
     ],
 };
