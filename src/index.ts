@@ -38,6 +38,8 @@ export const babylonInit = async () => {
 
 
 babylonInit().then( world => {
+    const heading = document.getElementById("heading");
+    heading.innerHTML = "Javascript loaded";
 
     // console.log(world.xr);
     // world.xr.baseExperience.sessionManager.runXRRenderLoop();

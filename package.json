@@ -28,7 +28,7 @@
         "webpack-merge": "^5.7.3"
     },
     "scripts": {
-        "start": "npx webpack serve --config webpack.dev.js --progress --open /usr/bin/chromium-browser",
+        "start": "npx webpack serve --config webpack.dev.js --progress --open chromium-browser",
         "build": "npx webpack --config webpack.prod.js --progress",
         "deploy": "npm run build && gh-pages -d dist",
         "deployOnly": "gh-pages -d dist",

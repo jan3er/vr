@@ -67,10 +67,10 @@ export class World
         // This creates a basic Babylon Scene object (non-mesh)
         this.scene = new Scene(this.engine);
 
-        this.scene.enablePhysics(new Vector3(0,-5, 0), new CannonJSPlugin(null, this.iterations, require("cannon")));
+        this.scene.enablePhysics(new Vector3(0,-10, 0), new CannonJSPlugin(null, this.iterations, require("cannon")));
 
         // This creates and positions a free camera (non-mesh)
-        const camera = new ArcRotateCamera("my first camera", 0, Math.PI / 7, 20, new Vector3(0, 0, 0), this.scene);
+        const camera = new ArcRotateCamera("my first camera", 0, Math.PI / 7, 5, new Vector3(0, 0, 0), this.scene);
 
         // This targets the camera to scene origin
         camera.setTarget(Vector3.Zero());
@@ -93,7 +93,7 @@ export class World
                 //sessionMode: 'local'
             }
         });
-        this.xr.baseExperience.camera.position = new Vector3(0,1,0);
+        //this.xr.baseExperience.camera.position = new Vector3(0,1,0);
 
         //const xrHelper = await BABYLON.WebXRExperienceHelper.CreateAsync(this.scene);
         //const sessionManager = await xrHelper.enterXRAsync("immersive-vr", "unbounded" );

@@ -1,7 +1,10 @@
+// @ts-nocheck
+
 import { makeConnection } from "./makeConnection";
 import {beep1, beep2, beep3} from "./util";
 import { Vector3, Color3 } from "@babylonjs/core";
 import { Axis, Quaternion } from "@babylonjs/core";
+import simplepeerMin from "./simplepeer.min";
 
 //TODO: we probably want different update rates for ball and paddle. paddle every frame and ball less frequent?
 const FRAMES_PER_UPDATE = 1;  //how often should the physics state be sent
@@ -31,6 +34,19 @@ export class Network {
         //apply updates on ball only if local authority is greater than remote authority
         this.localAuthority  = new Array(this.world.spheres.length);
         this.remoteAuthority = new Array(this.world.spheres.length);
+        this.isGrabbed = new Array(this.world.spheres.length);
+
+        //shortcuts to this.world.paddle1 and 2
+        this.localPaddle = null;
+        this.remotePaddle = null;
+
+        //either 1 or 2
+        this.localId = 0;
+        this.remoteId = 0;
+
+        //for the random movement of uncontrolled paddles
+        this.randomX = 10 + Math.random() * 10;
+        this.randomY = 10 + Math.random() * 10;
     }
 
     //starts establishing the connection. to be called once at the beginning
@@ -41,30 +57,47 @@ export class Network {
             this.localAuthority.fill(1);
             this.remoteAuthority.fill(0);;
             document.title = "Player 1";
+            this.localId = 1;
+            this.remoteId = 2;
         } else {
             this.localAuthority.fill(0);
             this.remoteAuthority.fill(1);;
             document.title = "Player 2";
+            this.localId = 2;
+            this.remoteId = 1;
         }
+        this.isGrabbed.fill(0);
 
         this.p.on('data', data => this.receiveData(data));
         this.connected = true;
 
-        var remotePaddle;
-        var localPaddle;
         if(this.p.initiator) {
-            localPaddle   = this.world.paddle1;
-            remotePaddle  = this.world.paddle2;
+            this.localPaddle   = this.world.paddle1;
+            this.remotePaddle  = this.world.paddle2;
         } else {
-            remotePaddle  = this.world.paddle1;
-            localPaddle   = this.world.paddle2;
+            this.remotePaddle  = this.world.paddle1;
+            this.localPaddle   = this.world.paddle2;
         }
+
+        //update authority if we hit it with the paddle
+        //also grab objects
         for(let i = 0; i < this.world.spheres.length; i++){
-            this.world.spheres[i].physicsImpostor.registerOnPhysicsCollide(localPaddle.physicsImpostor, (main, collided) => {
-                this.localAuthority[i] = this.remoteAuthority[i] + 1;
+            this.world.spheres[i].physicsImpostor.registerOnPhysicsCollide(this.localPaddle.physicsImpostor, (main, collided) => {
+                if(this.isGrabbed[i] !== this.remoteId ) {
+                    this.localAuthority[i] = this.remoteAuthority[i] + 1;
+                    if(this.world.xr.input.controllers.length !== 0){
+                        console.log(this.world.xr.input.controllers[0]);
+                        const trigger = this.world.xr.input.controllers[0].motionController.components["xr-standard-trigger"];
+                        if(trigger.pressed){
+                            this.isGrabbed[i] = this.id;
+                        }
+                    }
+                }
             });
         }
 
+        //propagate authority if an object hits another object.
+        //the faster one takes authority
         for(let i = 0; i < this.world.spheres.length; i++){
             for(let j = 0; j < this.world.spheres.length; j++){
                 if(i == j) continue;
@@ -79,48 +112,26 @@ export class Network {
             }
         }
 
-
-
         //the default physics filter group is 1. we want the ball to not collide with the remote paddle
-        remotePaddle.physicsImpostor._physicsBody.collisionFilterGroup = 2;
+        this.remotePaddle.physicsImpostor._physicsBody.collisionFilterGroup = 2;
 
-        localPaddle.material.diffuseColor = new Color3(1, 0, 0);
-        remotePaddle.material.diffuseColor = new Color3(0.9, 0.9, 0.9);
-
-        
+        this.localPaddle.material.diffuseColor = new Color3(1, 0, 0);
+        this.remotePaddle.material.diffuseColor = new Color3(0.9, 0.9, 0.9);
     }
 
     //to be called once every render frame
     render() {
+
+        //send data and process incoming data every FRAMES_PER_UPDATE frame
         if(this.connected && this.renderCounter % FRAMES_PER_UPDATE === 0) {
             this.sendData();
             this.processData();
             this.timeLocal += 1;
         }
 
-        // if(this.connected && this.renderCounter % 20 === 0) {
-        //     console.log("---");
-        //     console.log(this.world.spheres[0].physicsImpostor.getAngularVelocity());
-
-        //     console.log(this.world.spheres[0].physicsImpostor.getAngularVelocity().length());
-
-        //     console.log(this.world.spheres[0].physicsImpostor.getLinearVelocity());
-
-        //     console.log(this.world.spheres[0].physicsImpostor.getLinearVelocity().length());
-        // }
-        
-
         if(this.connected){
             
-            const speed = 0.5;
-            if(this.p.initiator){
-                const pos = new Vector3(0.7*Math.sin(speed*this.renderCounter/25), -0.1, 0.7*Math.sin(speed*this.renderCounter/17));
-                this.world.paddle1.position = pos;
-            } else {
-                const pos = new Vector3(0.7*Math.sin(speed*this.renderCounter/18), -0.1, 0.7*Math.sin(speed*this.renderCounter/27));
-                this.world.paddle2.position = pos;
-            }
-
+            //reset spheres that are too far away
             for(let i = 0; i < this.world.spheres.length; i++){
                 const sphere = this.world.spheres[i];
                 if (sphere.position.y > 10 || sphere.position.y < -1) {
@@ -129,16 +140,19 @@ export class Network {
                 }
             }
 
+            //update local paddle
             if(this.world.xr.input.controllers.length != 0){
-                const pos = this.world.xr.input.controllers[1].grip.position;
-                if(this.p.initiator){
-                    this.world.paddle1.position = pos;
-                } else {
-                    this.world.paddle2.position = pos;
-                }
+                this.localPaddle = this.world.xr.input.controllers[0].grip.position;
+            } else {
+                //movement of non-oculus paddle
+                const speed = 0.5;
+                this.localPaddle.position = new Vector3(
+                    0.7*Math.sin(speed*this.renderCounter/this.randomX),
+                    -0.1, 
+                    0.7*Math.sin(speed*this.renderCounter/this.randomY)
+                );
             }
         }
-
         
         this.renderCounter += 1;
     }
@@ -189,20 +203,17 @@ export class Network {
         mesh.physicsImpostor.setAngularVelocity(new Vector3(pack.angVel.x, pack.angVel.y, pack.angVel.z));
     }
 
+  
     isAtRest(mesh){
         //there is some vibration on the objects. therefore the linear velocity is not zero at rest
         //maybe this can be solved by increasing the number of iterations of the solver
         //https://sbcode.net/threejs/physics-cannonjs/
         
-        // const speed = mesh.physicsImpostor.getLinearVelocity().length() + mesh.physicsImpostor.getAngularVelocity().length();
-        const speed = mesh.physicsImpostor.getAngularVelocity().length();
-        return speed <= 0.05;
-    }    
-    isAtRest2(mesh){
         const speed = mesh.physicsImpostor.getLinearVelocity().length() + mesh.physicsImpostor.getAngularVelocity().length();
         //const speed = mesh.physicsImpostor.getAngularVelocity().length();
         return speed <= 0.05;
     }
+
     //send local data to remote peer
     sendData(){
         //console.log(this.meshToPackage(this.scene.getMeshByName("sphere")));
@@ -223,64 +234,63 @@ export class Network {
         }
     }
 
-    processData(){
-        // this.timeRemote+=1;
-        // const SMOOTH_GAP = 0.05
-        // //console.log("--");
-        // //console.log("gap:", this.jitterMax-this.jitterCurrent);
-        // this.averageGap = (1-SMOOTH_GAP) * this.averageGap + SMOOTH_GAP * (this.timeRemoteMax - this.timeRemote);
-        // //console.log(this.averageGap);
-        // if(this.averageGap > 1.5*BUFFER_DELAY || this.averageGap < -5*BUFFER_DELAY){
-        //     const newtarget = this.timeRemoteMax - BUFFER_DELAY;
-        //     console.log("the buffer was ahead for some time. jump this many extra steps:", (newtarget - this.timeRemote));
-        //     beep2();
-        //     this.timeRemote = newtarget; //Math.max(this.timeRemote, newtarget);
-        //     this.averageGap = BUFFER_DELAY;
-        // } 
-    
-        // var bufferHealth = []
-        // for(let i = 0; i < BUFFER_LENGTH; i++){
-        //     const data = this.buffer[(this.timeRemote + i) % BUFFER_LENGTH];
-        //     if(data !== undefined && data.time >= this.timeRemote){
-        //         bufferHealth.push(1);
-        //     } else {
-        //         bufferHealth.push(0);
-        //     }
-        // }
-    
-        // const data = this.buffer[this.timeRemote % BUFFER_LENGTH];
-    
-        // const SMOOTH_MISSING = 0.05
-        // if(data === undefined || data.time < this.timeRemote) {
-        //     /*console.log("old package was in buffer");*/
-        //     beep1();
-        //     this.averageMissing = SMOOTH_MISSING * 1 + (1-SMOOTH_MISSING) * this.averageMissing;
-        // } else {
-        //     this.averageMissing = SMOOTH_MISSING * 0 + (1-SMOOTH_MISSING) * this.averageMissing;
-        // }
-    
-        // if(this.averageMissing > 0.5) {
-        //     console.log("we have been missing more than half of our data for some time. repeat frame.");
-        //     beep3();
-        //     this.averageMissing = 0;
-        //     this.timeRemote-=1;
-        // }
-
+    simpleRemoteTimeUpdate(){
         this.timeRemote = this.timeRemoteMax;
+    }
+    complicatedRemoteTimeUpdate(){
+        this.timeRemote+=1;
+        const SMOOTH_GAP = 0.05
+        //console.log("--");
+        //console.log("gap:", this.jitterMax-this.jitterCurrent);
+        this.averageGap = (1-SMOOTH_GAP) * this.averageGap + SMOOTH_GAP * (this.timeRemoteMax - this.timeRemote);
+        //console.log(this.averageGap);
+        if(this.averageGap > 1.5*BUFFER_DELAY || this.averageGap < -5*BUFFER_DELAY){
+            const newtarget = this.timeRemoteMax - BUFFER_DELAY;
+            console.log("the buffer was ahead for some time. jump this many extra steps:", (newtarget - this.timeRemote));
+            beep2();
+            this.timeRemote = newtarget; //Math.max(this.timeRemote, newtarget);
+            this.averageGap = BUFFER_DELAY;
+        } 
+    
+        var bufferHealth = []
+        for(let i = 0; i < BUFFER_LENGTH; i++){
+            const data = this.buffer[(this.timeRemote + i) % BUFFER_LENGTH];
+            if(data !== undefined && data.time >= this.timeRemote){
+                bufferHealth.push(1);
+            } else {
+                bufferHealth.push(0);
+            }
+        }
+    
+        const data = this.buffer[this.timeRemote % BUFFER_LENGTH];
+    
+        const SMOOTH_MISSING = 0.05
+        if(data === undefined || data.time < this.timeRemote) {
+            /*console.log("old package was in buffer");*/
+            beep1();
+            this.averageMissing = SMOOTH_MISSING * 1 + (1-SMOOTH_MISSING) * this.averageMissing;
+        } else {
+            this.averageMissing = SMOOTH_MISSING * 0 + (1-SMOOTH_MISSING) * this.averageMissing;
+        }
+    
+        if(this.averageMissing > 0.5) {
+            console.log("we have been missing more than half of our data for some time. repeat frame.");
+            beep3();
+            this.averageMissing = 0;
+            this.timeRemote-=1;
+        }
+    }
+    processData(){
+        
+        // this.complicatedRemoteTimeUpdate();
+        this.simpleRemoteTimeUpdate();
+
         const data = this.buffer[this.timeRemote % BUFFER_LENGTH];
     
         if(data === undefined || data.time < this.timeRemote) return;
     
-        var remotePaddle;
-        var localPaddle;
-        if(this.p.initiator) {
-            localPaddle   = this.world.paddle1;
-            remotePaddle  = this.world.paddle2;
-        } else {
-            remotePaddle  = this.world.paddle1;
-            localPaddle   = this.world.paddle2;
-        }
-        this.packageToMesh(data.paddle, remotePaddle);
+   
+        this.packageToMesh(data.paddle, this.remotePaddle);
 
         //only apply the ball position if the remote authority is higher
         //visualize it by making ball red if its under our control
@@ -295,8 +305,13 @@ export class Network {
             } else {
                 this.world.spheres[i].material.diffuseColor = new Color3(1,0,0);
             }
-            if(this.isAtRest2(this.world.spheres[i])){
+            if(this.isAtRest(this.world.spheres[i])){
                 this.world.spheres[i].material.diffuseColor = new Color3(0,0,0);
+            }
+
+            if(this.isGrabbed[i] == this.localId){
+                this.world.spheres[i].position = this.world.xr.input.controllers[0].grip.position;
+
             }
 
         }
