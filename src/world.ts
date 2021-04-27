@@ -31,7 +31,7 @@ export class World
 
     numSpheres = 1;
     sphereSize = 0.4;
-    paddleSize = 0.5;
+    paddleSize = 0.05;
 
     arenaLength = 2; //diameter of the area
     arenaWidth = 2; //diameter of the area

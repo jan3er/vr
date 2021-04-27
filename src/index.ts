@@ -1,4 +1,5 @@
 import { Engine } from "@babylonjs/core/Engines/engine";
+import { Manipulator } from "./manipulator";
 import {Network} from "./network";
 import { World } from "./world";
 
@@ -15,7 +16,9 @@ export const babylonInit = async () => {
     const world = new World(engine, canvas);
     await world.init();
 
-    const network = new Network(world);
+    const manipulator = new Manipulator(world.xr.input, world.spheres);
+
+    const network = new Network(world, manipulator);
     network.start();
 
     world.scene.registerBeforeRender(function () {

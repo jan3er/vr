@@ -4,6 +4,7 @@ import { Vector3, Color3, Mesh, StandardMaterial } from "@babylonjs/core";
 import { Axis, Quaternion } from "@babylonjs/core";
 import { World } from "./world";
 import * as SimplePeer from './simplepeer.min.js';
+import { Manipulator } from "./manipulator";
 
 //TODO: we probably want different update rates for ball and paddle. paddle every frame and ball less frequent?
 const FRAMES_PER_UPDATE = 1;  //how often should the physics state be sent
@@ -14,6 +15,7 @@ export class Network
 {
     world: World;
     p;
+    manipulator: Manipulator;
     renderCounter = 0;
     connected = false;
     
@@ -41,8 +43,9 @@ export class Network
     randomX = 10 + Math.random() * 10;
     randomY = 10 + Math.random() * 10;
     
-    constructor(world: World) {
+    constructor(world: World, manipulator: Manipulator) {
         this.world = world;
+        this.manipulator = manipulator;
         //apply updates on ball only if local authority is greater than remote authority
         this.localAuthority  = new Array(this.world.spheres.length);
         this.remoteAuthority = new Array(this.world.spheres.length);
@@ -122,6 +125,10 @@ export class Network
     //to be called once every render frame
     render() {
 
+        if(this.manipulator.isConnected()){
+            this.manipulator.processInputs();
+        }
+
         //send data and process incoming data every FRAMES_PER_UPDATE frame
         if(this.connected && this.renderCounter % FRAMES_PER_UPDATE === 0) {
             this.sendData();
@@ -148,7 +155,7 @@ export class Network
                 const speed = 0.5;
                 this.localPaddle.position = new Vector3(
                     0.7*Math.sin(speed*this.renderCounter/this.randomX),
-                    -0.1, 
+                    0, 
                     0.7*Math.sin(speed*this.renderCounter/this.randomY)
                 );
             }
