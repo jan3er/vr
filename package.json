@@ -4,6 +4,7 @@
     "description": "",
     "main": "index.ts",
     "dependencies": {
+        "@types/simple-peer": "^9.6.2",
         "ammo.js": "github:kripken/ammo.js",
         "cannon": "^0.6.2",
         "gh-pages": "^3.1.0",

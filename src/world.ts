@@ -8,7 +8,7 @@ import "@babylonjs/core";
 
 import "@babylonjs/core/Materials/standardMaterial";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
-import { CannonJSPlugin, Color3, MeshBuilder, StandardMaterial } from "@babylonjs/core";
+import { CannonJSPlugin, Color3, Mesh, MeshBuilder, StandardMaterial, WebXRDefaultExperience } from "@babylonjs/core";
 import '@babylonjs/loaders/';
 
 import * as BABYLON from "@babylonjs/core";
@@ -16,33 +16,50 @@ import { walkUpBindingElementsAndPatterns } from "typescript";
 
 export class World
 {
-    constructor(engine, canvas)
+    engine: Engine;
+    canvas: HTMLCanvasElement;
+    scene: Scene;
+    spheres: Array<Mesh>;
+    paddle1: Mesh;
+    paddle2: Mesh;
+    xr: WebXRDefaultExperience;
+
+    friction = 0.01;
+    restitutionGround = 0.5;
+    restitutionSphere = 1;
+    iterations = 100; //precision of the physics solver
+
+    numSpheres = 1;
+    sphereSize = 0.4;
+    paddleSize = 0.5;
+
+    arenaLength = 2; //diameter of the area
+    arenaWidth = 2; //diameter of the area
+    arenaHeight = 0.5;  //height of the walls
+    borderWidth = 0.1;  //height of the walls
+
+    constructor(engine: Engine, canvas: HTMLCanvasElement)
     {
         this.engine = engine;
         this.canvas = canvas;
-        this.spheres = [];
-        //this.friction = 0.3;
-        this.friction = 0.01;
-        this.restitutionGround = 0.5;
-        this.restitutionSphere = 1;
-        this.iterations = 100; //precision of the physics solver
+        
+        // //this.friction = 0.3;
+        // this.friction = 0.01;
+        // this.restitutionGround = 0.5;
+        // this.restitutionSphere = 1;
+        // this.iterations = 100; //precision of the physics solver
 
-        this.numSpheres = 1;
-        this.sphereSize = 0.4;
-        this.paddleSize = 0.5;
+        // this.numSpheres = 1;
+        // this.sphereSize = 0.4;
+        // this.paddleSize = 0.5;
 
-        this.arenaLength = 2; //diameter of the area
-        this.arenaWidth = 2; //diameter of the area
-        this.arenaHeight = 0.5;  //height of the walls
-        this.borderWidth = 0.1;  //height of the walls
+        // this.arenaLength = 2; //diameter of the area
+        // this.arenaWidth = 2; //diameter of the area
+        // this.arenaHeight = 0.5;  //height of the walls
+        // this.borderWidth = 0.1;  //height of the walls
     }
 
-    initGround(){
-        // const length = 10; //diameter of the area
-        // const width = 20; //diameter of the area
-        // const height = 0.5;  //height of the walls
-
-    
+    initGround() : Array<Mesh> {
         var walls = [];
     
         //coordinates of our 5 walls. First entry is width,height,depth. second is x,y,z
@@ -121,7 +138,7 @@ export class World
     
 
  
-
+        this.spheres = [];
         for(let i = 0; i < this.numSpheres; i++){
             const sphere = MeshBuilder.CreateBox("sphere", {
                 size: this.sphereSize, 
@@ -133,8 +150,9 @@ export class World
             
             sphere.physicsImpostor.setLinearVelocity(new Vector3(0,5,0));
 
-            sphere.material = new StandardMaterial("", this.scene);
-            sphere.material.diffuseColor = new Color3(1, 0, 1);
+            const material = new StandardMaterial("", this.scene);
+            material.diffuseColor = new Color3(1, 0, 1);
+            sphere.material = material;
 
             this.spheres.push(sphere);
         }
@@ -148,8 +166,9 @@ export class World
             this.scene
         );
         this.paddle1.physicsImpostor = new PhysicsImpostor(this.paddle1, PhysicsImpostor.SphereImpostor, { mass: 0, restitution: this.restitutionSphere}, this.scene);
-        this.paddle1.material = new StandardMaterial("pad1", this.scene);
-        this.paddle1.material.diffuseColor = new Color3(1, 0, 1);
+        const material1 = new StandardMaterial("pad1", this.scene);
+        material1.diffuseColor = new Color3(1, 0, 1);
+        this.paddle1.material = material1;
 
 
         this.paddle2 = SphereBuilder.CreateSphere(
@@ -158,8 +177,9 @@ export class World
             this.scene
         );
         this.paddle2.physicsImpostor = new PhysicsImpostor(this.paddle2, PhysicsImpostor.SphereImpostor, { mass: 0, restitution: this.restitutionSphere}, this.scene);
-        this.paddle2.material = new StandardMaterial("pad2", this.scene);
-        this.paddle2.material.diffuseColor = new Color3(1, 0, 1);
+        const material2 = new StandardMaterial("pad2", this.scene);
+        material2.diffuseColor = new Color3(1, 0, 1);
+        this.paddle2.material = material2;
     }
 }
 

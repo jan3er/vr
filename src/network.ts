@@ -1,57 +1,57 @@
-// @ts-nocheck
-
 import { makeConnection } from "./makeConnection";
 import {beep1, beep2, beep3} from "./util";
-import { Vector3, Color3 } from "@babylonjs/core";
+import { Vector3, Color3, Mesh, StandardMaterial } from "@babylonjs/core";
 import { Axis, Quaternion } from "@babylonjs/core";
-import simplepeerMin from "./simplepeer.min";
+import { World } from "./world";
+import * as SimplePeer from './simplepeer.min.js';
 
 //TODO: we probably want different update rates for ball and paddle. paddle every frame and ball less frequent?
 const FRAMES_PER_UPDATE = 1;  //how often should the physics state be sent
 const BUFFER_DELAY = 10       //how many packets should the buffer be ahead
 const BUFFER_LENGTH = 20;     //some number. 10 is probably large enough
 
-function dummy(){
-    return 5;
-}
-
-export class Network {
+export class Network 
+{
+    world: World;
+    p;
+    renderCounter = 0;
+    connected = false;
     
-    constructor(world) {
+    buffer = new Array(BUFFER_LENGTH); //where the incomming packages are stored before they are processed.
+    timeLocal = 0;       //a counter that is incremented for every local physics snapshot
+    timeRemote = 0;      //the counter of the currently applied physics snapshot of the remote peer
+    timeRemoteMax = 0;   //the maximum snapshot time of any packet in the buffer
+    averageGap = 0;      //rolling average of the distance between timeRemote and timeRemoteMax
+    averageMissing = 0;  //rolling average of fraction of packages that did not arrive on time
+
+    //apply updates on ball only if local authority is greater than remote authority
+    localAuthority: Array<number>;
+    remoteAuthority: Array<number>;
+    isGrabbed: Array<number>;
+
+    //shortcuts to this.world.paddle1 and 2
+    localPaddle: Mesh;
+    remotePaddle: Mesh;
+
+    //either 1 or 2
+    localId = 0;
+    remoteId = 0;
+
+    //for the random movement of uncontrolled paddles
+    randomX = 10 + Math.random() * 10;
+    randomY = 10 + Math.random() * 10;
+    
+    constructor(world: World) {
         this.world = world;
-        this.scene = world.scene;
-        this.renderCounter = 0; //the current render frame number. this number is not sent over the network
-        this.connected = false; //true if a connection with the peer is established
-        this.p = null;          //the peer connection object
-
-        this.buffer = new Array(BUFFER_LENGTH); //where the incomming packages are stored before they are processed.
-        this.timeLocal = 0;       //a counter that is incremented for every local physics snapshot
-        this.timeRemote = 0;      //the counter of the currently applied physics snapshot of the remote peer
-        this.timeRemoteMax = 0;   //the maximum snapshot time of any packet in the buffer
-        this.averageGap = 0;      //rolling average of the distance between timeRemote and timeRemoteMax
-        this.averageMissing = 0;  //rolling average of fraction of packages that did not arrive on time
-
         //apply updates on ball only if local authority is greater than remote authority
         this.localAuthority  = new Array(this.world.spheres.length);
         this.remoteAuthority = new Array(this.world.spheres.length);
         this.isGrabbed = new Array(this.world.spheres.length);
-
-        //shortcuts to this.world.paddle1 and 2
-        this.localPaddle = null;
-        this.remotePaddle = null;
-
-        //either 1 or 2
-        this.localId = 0;
-        this.remoteId = 0;
-
-        //for the random movement of uncontrolled paddles
-        this.randomX = 10 + Math.random() * 10;
-        this.randomY = 10 + Math.random() * 10;
     }
 
     //starts establishing the connection. to be called once at the beginning
     async start() {
-        this.p = await makeConnection();
+        this.p = await makeConnection;
         
         if(this.p.initiator) {
             this.localAuthority.fill(1);
@@ -89,7 +89,7 @@ export class Network {
                         console.log(this.world.xr.input.controllers[0]);
                         const trigger = this.world.xr.input.controllers[0].motionController.components["xr-standard-trigger"];
                         if(trigger.pressed){
-                            this.isGrabbed[i] = this.id;
+                            this.isGrabbed[i] = this.localId;
                         }
                     }
                 }
@@ -113,10 +113,10 @@ export class Network {
         }
 
         //the default physics filter group is 1. we want the ball to not collide with the remote paddle
-        this.remotePaddle.physicsImpostor._physicsBody.collisionFilterGroup = 2;
+        this.remotePaddle.physicsImpostor.physicsBody.collisionFilterGroup = 2;
 
-        this.localPaddle.material.diffuseColor = new Color3(1, 0, 0);
-        this.remotePaddle.material.diffuseColor = new Color3(0.9, 0.9, 0.9);
+        (<StandardMaterial>this.localPaddle.material).diffuseColor = new Color3(1, 0, 0);
+        (<StandardMaterial>this.remotePaddle.material).diffuseColor = new Color3(0.9, 0.9, 0.9);
     }
 
     //to be called once every render frame
@@ -142,7 +142,7 @@ export class Network {
 
             //update local paddle
             if(this.world.xr.input.controllers.length != 0){
-                this.localPaddle = this.world.xr.input.controllers[0].grip.position;
+                this.localPaddle.position = this.world.xr.input.controllers[0].grip.position;
             } else {
                 //movement of non-oculus paddle
                 const speed = 0.5;
@@ -216,7 +216,6 @@ export class Network {
 
     //send local data to remote peer
     sendData(){
-        //console.log(this.meshToPackage(this.scene.getMeshByName("sphere")));
         if(this.p.initiator) {
             this.p.send(JSON.stringify({ 
                 time      : this.timeLocal,
@@ -301,12 +300,12 @@ export class Network {
         for(let i = 0; i < this.world.spheres.length; i++) {
             if(this.localAuthority[i] < this.remoteAuthority[i]){
                 this.packageToMesh(data.spheres[i], this.world.spheres[i]);
-                this.world.spheres[i].material.diffuseColor = new Color3(0.9,0.9,0.9);
+                (<StandardMaterial>this.world.spheres[i].material).diffuseColor = new Color3(0.9,0.9,0.9);
             } else {
-                this.world.spheres[i].material.diffuseColor = new Color3(1,0,0);
+                (<StandardMaterial>this.world.spheres[i].material).diffuseColor = new Color3(1,0,0);
             }
             if(this.isAtRest(this.world.spheres[i])){
-                this.world.spheres[i].material.diffuseColor = new Color3(0,0,0);
+                (<StandardMaterial>this.world.spheres[i].material).diffuseColor = new Color3(0,0,0);
             }
 
             if(this.isGrabbed[i] == this.localId){

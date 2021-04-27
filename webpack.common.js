@@ -16,13 +16,13 @@ module.exports = {
         //path: path.resolve("./dist/"),
         path: __dirname + "/dist",
     },
-    //resolve: {
-        //extensions: [".ts", ".js"],
-        //fallback: {
-            //fs: false,
-            //path: false, // require.resolve("path-browserify")
-        //},
-    //},
+    resolve: {
+        extensions: [".ts", ".js"],
+        fallback: {
+            fs: false,
+            path: false, // require.resolve("path-browserify")
+        },
+    },
     module: {
         rules: [
             {
