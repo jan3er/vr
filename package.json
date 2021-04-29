@@ -4,15 +4,15 @@
     "description": "",
     "main": "index.ts",
     "dependencies": {
+        "@babylonjs/core": "",
+        "@babylonjs/gui": "",
+        "@babylonjs/loaders": "",
         "@types/simple-peer": "^9.6.2",
-        "ammo.js": "github:kripken/ammo.js",
         "cannon": "^0.6.2",
         "gh-pages": "^3.1.0",
         "simple-peer": "^9.11.0"
     },
     "devDependencies": {
-        "@babylonjs/core": "^5.0.0-alpha.6",
-        "@babylonjs/loaders": "^5.0.0-alpha.6",
         "@typescript-eslint/eslint-plugin": "^2.30.0",
         "@typescript-eslint/parser": "^2.30.0",
         "clean-webpack-plugin": "^3.0.0",

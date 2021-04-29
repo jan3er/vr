@@ -4,15 +4,14 @@ import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { SphereBuilder } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
-import "@babylonjs/core";
+//import "@babylonjs/core";
 
 import "@babylonjs/core/Materials/standardMaterial";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
-import { CannonJSPlugin, Color3, Mesh, MeshBuilder, StandardMaterial, WebXRDefaultExperience } from "@babylonjs/core";
-import '@babylonjs/loaders/';
+import { CannonJSPlugin, Color3, Mesh, MeshBuilder, StandardMaterial, WebXRDefaultExperience, WebXRState } from "@babylonjs/core";
+//import '@babylonjs/loaders/';
 
-import * as BABYLON from "@babylonjs/core";
-import { walkUpBindingElementsAndPatterns } from "typescript";
+import { AdvancedDynamicTexture, TextBlock, Control, StackPanel } from "@babylonjs/gui";
 
 export class World
 {
@@ -24,6 +23,9 @@ export class World
     paddle2: Mesh;
     xr: WebXRDefaultExperience;
 
+    //put some debug text here
+    texts: Array<TextBlock> = [];
+
     friction = 0.01;
     restitutionGround = 0.5;
     restitutionSphere = 1;
@@ -31,7 +33,7 @@ export class World
 
     numSpheres = 1;
     sphereSize = 0.4;
-    paddleSize = 0.05;
+    paddleSize = 0.2;
 
     arenaLength = 2; //diameter of the area
     arenaWidth = 2; //diameter of the area
@@ -42,21 +44,6 @@ export class World
     {
         this.engine = engine;
         this.canvas = canvas;
-        
-        // //this.friction = 0.3;
-        // this.friction = 0.01;
-        // this.restitutionGround = 0.5;
-        // this.restitutionSphere = 1;
-        // this.iterations = 100; //precision of the physics solver
-
-        // this.numSpheres = 1;
-        // this.sphereSize = 0.4;
-        // this.paddleSize = 0.5;
-
-        // this.arenaLength = 2; //diameter of the area
-        // this.arenaWidth = 2; //diameter of the area
-        // this.arenaHeight = 0.5;  //height of the walls
-        // this.borderWidth = 0.1;  //height of the walls
     }
 
     initGround() : Array<Mesh> {
@@ -118,20 +105,20 @@ export class World
         console.log(this.xr);
         this.xr.baseExperience.onStateChangedObservable.add((state) => {
             switch (state) {
-                case BABYLON.WebXRState.IN_XR:
+                case WebXRState.IN_XR:
                     // XR is initialized and already submitted one frame
 
                     //console.log(this.xr.baseExperience.sessionManager.referenceSpace);
 
                     this.xr.baseExperience.camera.position = new Vector3(0,1,0);
 
-                case BABYLON.WebXRState.ENTERING_XR:
+                case WebXRState.ENTERING_XR:
                     // xr is being initialized, enter XR request was made
 
 
-                case BABYLON.WebXRState.EXITING_XR:
+                case WebXRState.EXITING_XR:
                     // xr exit request was made. not yet done.
-                case BABYLON.WebXRState.NOT_IN_XR:
+                case WebXRState.NOT_IN_XR:
                     // self explanatory - either out or not yet in XR
             }
         });
@@ -145,8 +132,6 @@ export class World
             }, this.scene);
             sphere.physicsImpostor = new PhysicsImpostor(sphere, PhysicsImpostor.BoxImpostor, { mass: 2, restitution: this.restitutionSphere, friction: this.friction}, this.scene);
             sphere.position.y = 2;
-            // sphere.position.x = 1;
-            // sphere.position.z = 2;
             
             sphere.physicsImpostor.setLinearVelocity(new Vector3(0,5,0));
 
@@ -180,6 +165,30 @@ export class World
         const material2 = new StandardMaterial("pad2", this.scene);
         material2.diffuseColor = new Color3(1, 0, 1);
         this.paddle2.material = material2;
+
+        //https://www.babylonjs.com.cn/how_to/gui.html
+        var advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, this.scene);
+        var panel = new StackPanel();   
+        
+        panel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+        panel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP; 
+        panel.height = 0.3;
+        panel.width = 0.3;
+        advancedTexture.addControl(panel);
+
+        for(let i=0; i < 5; i++){
+            var text = new TextBlock();
+            text.text = "";
+            text.color = "white";
+            text.fontSize = 24;
+            text.width = "200px";
+            text.height = "30px";
+            text.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+            panel.addControl(text);
+            this.texts.push(text);
+        }
+
+
     }
 }
 

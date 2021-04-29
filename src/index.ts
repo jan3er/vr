@@ -1,4 +1,4 @@
-import { Engine } from "@babylonjs/core/Engines/engine";
+import { Engine, Vector3 } from "@babylonjs/core";
 import { Manipulator } from "./manipulator";
 import {Network} from "./network";
 import { World } from "./world";
@@ -16,14 +16,24 @@ export const babylonInit = async () => {
     const world = new World(engine, canvas);
     await world.init();
 
-    const manipulator = new Manipulator(world.xr.input, world.spheres);
+    const manipulator = new Manipulator(world.xr.input, world);
 
-    const network = new Network(world, manipulator);
+    const network = new Network(world);
     network.start();
 
-    world.scene.registerBeforeRender(function () {
-        network.render()
-	})
+    world.scene.registerBeforeRender(() => {
+        manipulator.mainLoop();
+        network.mainLoop();
+
+        //reset spheres that are too far away
+        for(let i = 0; i < world.spheres.length; i++){
+            const sphere = world.spheres[i];
+            if (sphere.position.y > 10 || sphere.position.y < -1) {
+                sphere.position = new Vector3(0,2,0);
+                sphere.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
+            }
+        }
+	});
 
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
@@ -41,8 +51,7 @@ export const babylonInit = async () => {
 
 
 babylonInit().then( world => {
-    const heading = document.getElementById("heading");
-    heading.innerHTML = "Javascript loaded";
+    const heading = document.getElementById("heading").remove();
 
     // console.log(world.xr);
     // world.xr.baseExperience.sessionManager.runXRRenderLoop();

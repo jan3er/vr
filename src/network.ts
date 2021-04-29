@@ -4,7 +4,7 @@ import { Vector3, Color3, Mesh, StandardMaterial } from "@babylonjs/core";
 import { Axis, Quaternion } from "@babylonjs/core";
 import { World } from "./world";
 import * as SimplePeer from './simplepeer.min.js';
-import { Manipulator } from "./manipulator";
+//import { Manipulator } from "./manipulator";
 
 //TODO: we probably want different update rates for ball and paddle. paddle every frame and ball less frequent?
 const FRAMES_PER_UPDATE = 1;  //how often should the physics state be sent
@@ -15,7 +15,7 @@ export class Network
 {
     world: World;
     p;
-    manipulator: Manipulator;
+    //manipulator: Manipulator;
     renderCounter = 0;
     connected = false;
     
@@ -43,9 +43,9 @@ export class Network
     randomX = 10 + Math.random() * 10;
     randomY = 10 + Math.random() * 10;
     
-    constructor(world: World, manipulator: Manipulator) {
+    constructor(world: World) {
         this.world = world;
-        this.manipulator = manipulator;
+        //this.manipulator = manipulator;
         //apply updates on ball only if local authority is greater than remote authority
         this.localAuthority  = new Array(this.world.spheres.length);
         this.remoteAuthority = new Array(this.world.spheres.length);
@@ -55,6 +55,7 @@ export class Network
     //starts establishing the connection. to be called once at the beginning
     async start() {
         this.p = await makeConnection;
+        this.world.texts[0].text = "connecting...";
         
         if(this.p.initiator) {
             this.localAuthority.fill(1);
@@ -73,6 +74,7 @@ export class Network
 
         this.p.on('data', data => this.receiveData(data));
         this.connected = true;
+        this.world.texts[0].text = "connected";
 
         if(this.p.initiator) {
             this.localPaddle   = this.world.paddle1;
@@ -123,11 +125,11 @@ export class Network
     }
 
     //to be called once every render frame
-    render() {
+    mainLoop() {
 
-        if(this.manipulator.isConnected()){
-            this.manipulator.processInputs();
-        }
+        // if(this.manipulator.isConnected()){
+        //     this.manipulator.processInputs();
+        // }
 
         //send data and process incoming data every FRAMES_PER_UPDATE frame
         if(this.connected && this.renderCounter % FRAMES_PER_UPDATE === 0) {
@@ -137,15 +139,6 @@ export class Network
         }
 
         if(this.connected){
-            
-            //reset spheres that are too far away
-            for(let i = 0; i < this.world.spheres.length; i++){
-                const sphere = this.world.spheres[i];
-                if (sphere.position.y > 10 || sphere.position.y < -1) {
-                    sphere.position = new Vector3(0,2,0);
-                    sphere.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
-                }
-            }
 
             //update local paddle
             if(this.world.xr.input.controllers.length != 0){
