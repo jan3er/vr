@@ -3,6 +3,8 @@ import { Manipulator } from "./manipulator";
 import {Network} from "./network";
 import { World } from "./world";
 
+var mani;
+
 export const babylonInit = async () => {
     
     // Get the canvas element
@@ -17,6 +19,7 @@ export const babylonInit = async () => {
     await world.init();
 
     const manipulator = new Manipulator(world.xr.input, world);
+    mani = manipulator;
 
     const network = new Network(world);
     network.start();

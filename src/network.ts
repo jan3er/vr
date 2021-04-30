@@ -29,7 +29,6 @@ export class Network
     //apply updates on ball only if local authority is greater than remote authority
     localAuthority: Array<number>;
     remoteAuthority: Array<number>;
-    isGrabbed: Array<number>;
 
     //shortcuts to this.world.paddle1 and 2
     localPaddle: Mesh;
@@ -39,9 +38,9 @@ export class Network
     localId = 0;
     remoteId = 0;
 
-    //for the random movement of uncontrolled paddles
-    randomX = 10 + Math.random() * 10;
-    randomY = 10 + Math.random() * 10;
+    // //for the random movement of uncontrolled paddles
+    // randomX = 10 + Math.random() * 10;
+    // randomY = 10 + Math.random() * 10;
     
     constructor(world: World) {
         this.world = world;
@@ -49,7 +48,6 @@ export class Network
         //apply updates on ball only if local authority is greater than remote authority
         this.localAuthority  = new Array(this.world.spheres.length);
         this.remoteAuthority = new Array(this.world.spheres.length);
-        this.isGrabbed = new Array(this.world.spheres.length);
     }
 
     //starts establishing the connection. to be called once at the beginning
@@ -70,7 +68,6 @@ export class Network
             this.localId = 2;
             this.remoteId = 1;
         }
-        this.isGrabbed.fill(0);
 
         this.p.on('data', data => this.receiveData(data));
         this.connected = true;
@@ -80,24 +77,15 @@ export class Network
             this.localPaddle   = this.world.paddle1;
             this.remotePaddle  = this.world.paddle2;
         } else {
-            this.remotePaddle  = this.world.paddle1;
-            this.localPaddle   = this.world.paddle2;
+            this.localPaddle   = this.world.paddle1;
+            this.remotePaddle  = this.world.paddle2;
         }
 
         //update authority if we hit it with the paddle
         //also grab objects
         for(let i = 0; i < this.world.spheres.length; i++){
             this.world.spheres[i].physicsImpostor.registerOnPhysicsCollide(this.localPaddle.physicsImpostor, (main, collided) => {
-                if(this.isGrabbed[i] !== this.remoteId ) {
-                    this.localAuthority[i] = this.remoteAuthority[i] + 1;
-                    if(this.world.xr.input.controllers.length !== 0){
-                        console.log(this.world.xr.input.controllers[0]);
-                        const trigger = this.world.xr.input.controllers[0].motionController.components["xr-standard-trigger"];
-                        if(trigger.pressed){
-                            this.isGrabbed[i] = this.localId;
-                        }
-                    }
-                }
+                this.localAuthority[i] = this.remoteAuthority[i] + 1;
             });
         }
 
@@ -138,21 +126,21 @@ export class Network
             this.timeLocal += 1;
         }
 
-        if(this.connected){
+        // if(this.connected){
 
-            //update local paddle
-            if(this.world.xr.input.controllers.length != 0){
-                this.localPaddle.position = this.world.xr.input.controllers[0].grip.position;
-            } else {
-                //movement of non-oculus paddle
-                const speed = 0.5;
-                this.localPaddle.position = new Vector3(
-                    0.7*Math.sin(speed*this.renderCounter/this.randomX),
-                    0, 
-                    0.7*Math.sin(speed*this.renderCounter/this.randomY)
-                );
-            }
-        }
+        //     //update local paddle
+        //     if(this.world.xr.input.controllers.length != 0){
+        //         this.localPaddle.position = this.world.xr.input.controllers[0].grip.position;
+        //     } else {
+        //         //movement of non-oculus paddle
+        //         const speed = 0.5;
+        //         this.localPaddle.position = new Vector3(
+        //             0.7*Math.sin(speed*this.renderCounter/this.randomX),
+        //             0, 
+        //             0.7*Math.sin(speed*this.renderCounter/this.randomY)
+        //         );
+        //     }
+        // }
         
         this.renderCounter += 1;
     }
@@ -216,21 +204,12 @@ export class Network
 
     //send local data to remote peer
     sendData(){
-        if(this.p.initiator) {
-            this.p.send(JSON.stringify({ 
-                time      : this.timeLocal,
-                paddle    : this.meshToPackage(this.world.paddle1),
-                spheres   : this.world.spheres.map(sphere => this.meshToPackage(sphere)),
-                authority : this.localAuthority
-            }));
-        } else {
-            this.p.send(JSON.stringify({ 
-                time      : this.timeLocal,
-                paddle    : this.meshToPackage(this.world.paddle2),
-                spheres   : this.world.spheres.map(sphere => this.meshToPackage(sphere)),
-                authority : this.localAuthority
-            }));
-        }
+        this.p.send(JSON.stringify({ 
+            time      : this.timeLocal,
+            paddle    : this.meshToPackage(this.localPaddle),
+            spheres   : this.world.spheres.map(sphere => this.meshToPackage(sphere)),
+            authority : this.localAuthority
+        }));
     }
 
     simpleRemoteTimeUpdate(){
@@ -307,12 +286,6 @@ export class Network
             if(this.isAtRest(this.world.spheres[i])){
                 (<StandardMaterial>this.world.spheres[i].material).diffuseColor = new Color3(0,0,0);
             }
-
-            if(this.isGrabbed[i] == this.localId){
-                this.world.spheres[i].position = this.world.xr.input.controllers[0].grip.position;
-
-            }
-
         }
     }
 

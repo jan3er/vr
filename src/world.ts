@@ -147,9 +147,10 @@ export class World
         //the paddle
         this.paddle1 = SphereBuilder.CreateSphere(
             "paddle1",
-            { diameter: this.paddleSize, segments: 32 },
+            { diameterX: this.paddleSize, diameterY: 0.7*this.paddleSize, diameterZ: this.paddleSize, segments: 32 },
             this.scene
         );
+
         this.paddle1.physicsImpostor = new PhysicsImpostor(this.paddle1, PhysicsImpostor.SphereImpostor, { mass: 0, restitution: this.restitutionSphere}, this.scene);
         const material1 = new StandardMaterial("pad1", this.scene);
         material1.diffuseColor = new Color3(1, 0, 1);
@@ -158,7 +159,7 @@ export class World
 
         this.paddle2 = SphereBuilder.CreateSphere(
             "paddle2",
-            { diameter: this.paddleSize, segments: 32 },
+            { diameterX: this.paddleSize, diameterY: 0.7*this.paddleSize, diameterZ: this.paddleSize, segments: 32 },
             this.scene
         );
         this.paddle2.physicsImpostor = new PhysicsImpostor(this.paddle2, PhysicsImpostor.SphereImpostor, { mass: 0, restitution: this.restitutionSphere}, this.scene);
