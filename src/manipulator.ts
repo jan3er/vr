@@ -109,7 +109,7 @@ export class Manipulator
         }
 
 
-        //////////////////////////
+
 
 
         if(this.controllers[0].squeeze){
@@ -142,14 +142,29 @@ export class Manipulator
 
             if(!this.isGrabbed[i] && this.isGrabbedBefore[i]) {
                 this.world.spheres[i].setParent(null)
-                
+                //todo, here we want to set the velocity to the velocity of the controller,
+                // so we can actually throw things
                 this.world.spheres[i].physicsImpostor.setLinearVelocity(new Vector3());
                 this.world.spheres[i].physicsImpostor.setAngularVelocity(new Vector3());
-                console.log("ungrab");
             }
 
             this.isGrabbedBefore[i] = this.isGrabbed[i];
         }
+
+
+        //////////////////////////
+
+        var pos = this.world.spheres[0].position;
+        pos.x = Math.fround(pos.x);
+        pos.y = Math.fround(pos.y);
+        pos.z = Math.fround(pos.z);
+        this.world.spheres[0].position = pos;
+
+        this.world.texts[0].text = "" + this.world.spheres[0].position.x;
+        this.world.texts[1].text = "" + this.world.spheres[0].position.y;
+        this.world.texts[2].text = "" + this.world.spheres[0].position.z;
+
+        /////////////////////////
     }
 
     //a bit hacky, I know

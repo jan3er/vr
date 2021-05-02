@@ -26,9 +26,9 @@ export class World
     //put some debug text here
     texts: Array<TextBlock> = [];
 
-    friction = 0.01;
-    restitutionGround = 0.5;
-    restitutionSphere = 1;
+    friction = 0.015;
+    restitutionGround = 0.9;
+    restitutionSphere = 0.9;
     iterations = 100; //precision of the physics solver
 
     numSpheres = 1;
@@ -131,9 +131,9 @@ export class World
                 size: this.sphereSize, 
             }, this.scene);
             sphere.physicsImpostor = new PhysicsImpostor(sphere, PhysicsImpostor.BoxImpostor, { mass: 2, restitution: this.restitutionSphere, friction: this.friction}, this.scene);
-            sphere.position.y = 2;
+            sphere.position = new Vector3(0,2,0);
             
-            sphere.physicsImpostor.setLinearVelocity(new Vector3(0,5,0));
+            sphere.physicsImpostor.setLinearVelocity(new Vector3(0,3,0));
 
             const material = new StandardMaterial("", this.scene);
             material.diffuseColor = new Color3(1, 0, 1);
@@ -150,7 +150,7 @@ export class World
             { diameterX: this.paddleSize, diameterY: 0.7*this.paddleSize, diameterZ: this.paddleSize, segments: 32 },
             this.scene
         );
-
+        this.paddle1.position = new Vector3(-1,0,-1);
         this.paddle1.physicsImpostor = new PhysicsImpostor(this.paddle1, PhysicsImpostor.SphereImpostor, { mass: 0, restitution: this.restitutionSphere}, this.scene);
         const material1 = new StandardMaterial("pad1", this.scene);
         material1.diffuseColor = new Color3(1, 0, 1);
@@ -162,6 +162,7 @@ export class World
             { diameterX: this.paddleSize, diameterY: 0.7*this.paddleSize, diameterZ: this.paddleSize, segments: 32 },
             this.scene
         );
+        this.paddle2.position = new Vector3(-1,0,-1);
         this.paddle2.physicsImpostor = new PhysicsImpostor(this.paddle2, PhysicsImpostor.SphereImpostor, { mass: 0, restitution: this.restitutionSphere}, this.scene);
         const material2 = new StandardMaterial("pad2", this.scene);
         material2.diffuseColor = new Color3(1, 0, 1);
@@ -182,7 +183,7 @@ export class World
             text.text = "";
             text.color = "white";
             text.fontSize = 24;
-            text.width = "200px";
+            text.width = "500px";
             text.height = "30px";
             text.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
             panel.addControl(text);

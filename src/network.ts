@@ -3,8 +3,6 @@ import {beep1, beep2, beep3} from "./util";
 import { Vector3, Color3, Mesh, StandardMaterial } from "@babylonjs/core";
 import { Axis, Quaternion } from "@babylonjs/core";
 import { World } from "./world";
-import * as SimplePeer from './simplepeer.min.js';
-//import { Manipulator } from "./manipulator";
 
 //TODO: we probably want different update rates for ball and paddle. paddle every frame and ball less frequent?
 const FRAMES_PER_UPDATE = 1;  //how often should the physics state be sent
@@ -52,8 +50,8 @@ export class Network
 
     //starts establishing the connection. to be called once at the beginning
     async start() {
-        this.p = await makeConnection;
-        this.world.texts[0].text = "connecting...";
+        this.world.texts[4].text = "connecting...";
+        this.p = await makeConnection();
         
         if(this.p.initiator) {
             this.localAuthority.fill(1);
@@ -71,7 +69,7 @@ export class Network
 
         this.p.on('data', data => this.receiveData(data));
         this.connected = true;
-        this.world.texts[0].text = "connected";
+        this.world.texts[4].text = "connected";
 
         if(this.p.initiator) {
             this.localPaddle   = this.world.paddle1;
@@ -288,5 +286,4 @@ export class Network
             }
         }
     }
-
 }

@@ -1,11 +1,16 @@
+document.getElementById("heading").remove();
+
+import "./serialize";
+
+
+
 import { Engine, Vector3 } from "@babylonjs/core";
 import { Manipulator } from "./manipulator";
 import {Network} from "./network";
 import { World } from "./world";
 
-var mani;
 
-export const babylonInit = async () => {
+const babylonInit = async () => {
     
     // Get the canvas element
     const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
@@ -19,7 +24,6 @@ export const babylonInit = async () => {
     await world.init();
 
     const manipulator = new Manipulator(world.xr.input, world);
-    mani = manipulator;
 
     const network = new Network(world);
     network.start();
@@ -54,10 +58,5 @@ export const babylonInit = async () => {
 
 
 babylonInit().then( world => {
-    const heading = document.getElementById("heading").remove();
-
-    // console.log(world.xr);
-    // world.xr.baseExperience.sessionManager.runXRRenderLoop();
-    // console.log(world.xr);
 
 });
