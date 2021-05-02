@@ -14,22 +14,32 @@ export class NetworkObject extends Serializable {
     constructor(mesh: Mesh, players: NetworkPlayer[]){
         super();
         this.mesh = mesh;
-        
-        //TODO: also handle collisions with other network objects
-        //do we need some static handler for this, where we register the objects?
+    }
+
+    //connect all the players and objects by setting collision callbacks between them
+    static RegisterCollisionCallbacks(players: NetworkPlayer[], objects: NetworkObject[]){
         players.forEach(player => {
-            this.mesh.physicsImpostor.registerOnPhysicsCollide(player.mesh.physicsImpostor, (main, collided) => {
-                if(player.isLocal) {
-                    this.localAuthority = this.remoteAuthority + 1;
-                }
+            objects.forEach(object => {
+                object.mesh.physicsImpostor.registerOnPhysicsCollide(player.mesh.physicsImpostor, (main, collided) => {
+                    if(player.isLocal) {
+                        object.localAuthority = object.remoteAuthority + 1;
+                    }
+                });
             });
         });
-    }
+    };
 
     //todo: write a function that gets called once per frame and make sure it gets called
     //here we can set the color based on who controls this
     update(){
 
+    }
+
+    grab(player: NetworkPlayer){
+        console.log("grab!");
+    }
+    release(player: NetworkPlayer){
+        console.log("relsease!");
     }
 
     shouldSend(){

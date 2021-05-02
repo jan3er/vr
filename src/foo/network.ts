@@ -22,12 +22,12 @@ export class Network
         
         if(this.p.initiator) {
             document.title = "Player 1";
-            this.world.player1.isLocal = true;
-            this.world.player2.isLocal = false;
+            this.world.players[0].isLocal = true;
+            this.world.players[1].isLocal = false;
         } else {
             document.title = "Player 2";
-            this.world.player1.isLocal = false;
-            this.world.player2.isLocal = true;
+            this.world.players[0].isLocal = false;
+            this.world.players[1].isLocal = true;
         }
 
         this.p.on('data', data => {
