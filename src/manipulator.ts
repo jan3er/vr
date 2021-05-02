@@ -10,6 +10,7 @@ export class Controller
     squeeze: boolean;
 }
 
+
 export class Manipulator
 {
     inputVR: Array<WebXRInputSource> = [];

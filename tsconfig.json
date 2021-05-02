@@ -3,15 +3,16 @@
         "module": "esNext",
 		"target": "es5",
 		"moduleResolution": "node",
-		"strict": false,
-		"noImplicitAny": false,
-        "noImplicitReturns": false,
-        "noImplicitThis": false,
-        "strictNullChecks": false,
+		"strict": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
         "strictFunctionTypes": true,
         "skipLibCheck": true,
 		"preserveConstEnums":true,
         "sourceMap": true,
-        "rootDir": "src"
+        "rootDir": "src",
+
+		"noImplicitAny": false,
+        "strictNullChecks": false,
 	}
 }

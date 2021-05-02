@@ -9,7 +9,6 @@ import { CannonJSPlugin, Color3, Mesh, MeshBuilder, StandardMaterial, WebXRDefau
 //import '@babylonjs/loaders/';
 
 import { AdvancedDynamicTexture, TextBlock, Control, StackPanel } from "@babylonjs/gui";
-import { Serializable } from "./serialize";
 
 export class World
 {
@@ -191,50 +190,3 @@ export class World
 
     }
 }
-
-class Sphere extends Serializable{
-    mesh: Mesh;
-    scene: Scene;
-
-    static readonly SIZE: 1;
-    static readonly MASS = 2;
-    static readonly RESTITUTION = 0.9;
-    static readonly FRICTION: 0.01;
-
-    constructor(scene: Scene){
-        super();
-        this.scene = scene;
-        this.mesh = MeshBuilder.CreateBox("sphere", {
-            size: Sphere.SIZE, 
-        }, this.scene);
-        this.mesh.physicsImpostor = new PhysicsImpostor(this.mesh, PhysicsImpostor.BoxImpostor, 
-            { 
-                mass:        Sphere.MASS, 
-                restitution: Sphere.RESTITUTION, 
-                friction:    Sphere.FRICTION
-            }, this.scene);
-        this.mesh.position.set(0,2,0);
-
-        this.mesh.physicsImpostor.setLinearVelocity(new Vector3(0,3,0));
-
-        const material = new StandardMaterial("", this.scene);
-        material.diffuseColor = new Color3(1, 0, 1);
-        this.mesh.material = material;
-    }
-
-    serialize() {
-        this.writeVector3(this.mesh.position);
-        this.writeQuaternion(this.mesh.rotationQuaternion);
-        this.writeVector3(this.mesh.physicsImpostor.getLinearVelocity());
-        this.writeVector3(this.mesh.physicsImpostor.getAngularVelocity());
-    }
-    deserialize() {
-        this.mesh.position = this.readVector3();
-        this.mesh.rotationQuaternion.copyFrom(this.readQuaternion());
-        this.mesh.physicsImpostor.setLinearVelocity(this.readVector3());
-        this.mesh.physicsImpostor.setAngularVelocity(this.readVector3());   
-    }
-}
-
-
-
