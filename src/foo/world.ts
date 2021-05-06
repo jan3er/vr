@@ -6,26 +6,32 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { Scene } from "@babylonjs/core/scene";
+import { TextBlock, StackPanel, Control } from "@babylonjs/gui";
+import { AdvancedDynamicTexture } from "@babylonjs/gui/2D/advancedDynamicTexture";
 
 import { NetworkObject } from "./object";
-import { NetworkPlayer } from "./player";
+import { NetworkController } from "./player";
 import { Serializable } from "./serialize";
 
 export class World extends Serializable{
     scene:   Scene;
-    players: NetworkPlayer[];
+    players: NetworkController[];
     objects: NetworkObject[];
+    texts:   TextBlock[];
 
     constructor(scene: Scene){
         super();
+        
+        this.scene = scene;
 
         //two players
-        this.players = [new NetworkPlayer(scene), new NetworkPlayer(scene)];
+        //if we want two controlllers per player just add them with the same id?
+        this.players = [new NetworkController(0,this), new NetworkController(1,this)];
 
         //a bunch of network objects
         this.objects = [];
-        for(let i = 0; i < 2; i++){
-            const sphere = NetworkObject.MakeSphere(this.players, scene);
+        for(let i = 0; i < 1; i++){
+            const sphere = NetworkObject.MakeSphere(this, scene);
             sphere.mesh.position.x = i/2;
             this.objects.push(sphere);
         }
@@ -37,9 +43,12 @@ export class World extends Serializable{
         this.children = (<Serializable[]>this.players).concat(<Serializable[]>this.objects);
 
         World.MakeGround(scene);
+        this.texts = World.MakeTexts(scene);
     }
-
-    static MakeGround(scene) : Array<Mesh> {
+    
+    ///////////////////////////////////////////////////
+    
+    static MakeGround(scene) : Mesh[] {
         const LENGTH = 2; //diameter of the area
         const WIDTH = 2; //diameter of the area
         const HEIGHT = 0.5;  //height of the walls
@@ -66,6 +75,35 @@ export class World extends Serializable{
             walls.push(wall);
         });
         return walls;
+    }
+    
+    static MakeTexts(scene): TextBlock[] {
+        //https://www.babylonjs.com.cn/how_to/gui.html
+        var advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
+        var panel = new StackPanel();   
+        
+        console.log("maketexts");
+        
+        panel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+        panel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP; 
+        panel.height = 0.3;
+        panel.width = 0.3;
+        advancedTexture.addControl(panel);
+
+        var texts = []
+        for(let i=0; i < 5; i++){
+            var text = new TextBlock();
+            text.text = "";
+            text.color = "white";
+            text.fontSize = 24;
+            text.width = "500px";
+            text.height = "30px";
+            text.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+            panel.addControl(text);
+            advancedTexture.addControl(text);
+            texts.push(text);
+        }
+        return texts;
     }
 }
 

@@ -190,6 +190,17 @@ export abstract class Serializable {
         }
         return offset;
     }
+    
+    //an update method. and in case you need to do something before the children get updated an another update method
+    update(){};
+    updateBeforeChildren(){};
+
+    //updates everything
+    updateRecursive(){
+        this.updateBeforeChildren();
+        this.children.forEach(c => c.updateRecursive());
+        this.update();
+    }
 
 }
 

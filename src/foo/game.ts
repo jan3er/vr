@@ -37,14 +37,14 @@ async function init(){
     const network = new Network(world);
     network.start();
 
-
-    
     scene.registerBeforeRender(() => {
-            network.mainLoop();
+        world.updateRecursive();
+        network.mainLoop();
     });
 
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(() => {
+        world.texts[4].text = engine.getFps().toFixed() + " fps";
         scene.render();
     });
 
