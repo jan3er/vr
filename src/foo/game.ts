@@ -38,13 +38,16 @@ async function init(){
     network.start();
 
     scene.registerBeforeRender(() => {
-        world.updateRecursive();
-        network.mainLoop();
     });
 
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(() => {
+        const start = new Date().getTime();
+        world.updateRecursive();
+        network.mainLoop();
+        const end = new Date().getTime();
         world.texts[4].text = engine.getFps().toFixed() + " fps";
+        world.texts[5].text = "manual: " + (end - start);
         scene.render();
     });
 

@@ -55,10 +55,21 @@ export class NetworkObject extends Serializable {
         this.world.texts[0].text = "" + this.remoteAuthority;
         this.world.texts[1].text = "" + this.localAuthority;
         
+        //this.world.texts[10].text = "" + this.mesh.position;
+        //this.world.texts[11].text = "" + this.mesh.rotationQuaternion;
+        //this.world.texts[12].text = "" + this.relativeGrabPosition;
+        //this.world.texts[13].text = "" + this.relativeGrabRotationQuaternion;
+    
         if(this.grabber !== null){
-            this.mesh.position.copyFrom(this.relativeGrabPosition);
-            this.mesh.rotationQuaternion.copyFrom(this.relativeGrabRotationQuaternion);
+            const v = this.relativeGrabPosition;
+            this.mesh.position.set(v.x, v.y, v.z)
+            const q = this.relativeGrabRotationQuaternion
+            this.mesh.rotationQuaternion.set(q.x,q.y,q.z,q.w);
+            this.mesh.physicsImpostor.mass = 0;
+        } else {
+            this.mesh.physicsImpostor.mass = 1;
         }
+            
 
         if(this.localAuthority >= this.remoteAuthority){
             (<StandardMaterial>this.mesh.material).diffuseColor = new Color3(1,0,0);
@@ -95,6 +106,8 @@ export class NetworkObject extends Serializable {
             this.mesh.setParent(null);
             //todos:
             //compute velocity
+            this.mesh.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
+            this.mesh.physicsImpostor.setAngularVelocity(new Vector3(0,0,0));
         }
         console.log("relsease!");
     }

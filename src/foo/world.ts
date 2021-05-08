@@ -91,7 +91,7 @@ export class World extends Serializable{
         advancedTexture.addControl(panel);
 
         var texts = []
-        for(let i=0; i < 5; i++){
+        for(let i=0; i < 20; i++){
             var text = new TextBlock();
             text.text = "";
             text.color = "white";

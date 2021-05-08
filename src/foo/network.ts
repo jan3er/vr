@@ -11,6 +11,7 @@ export class Network
     world: World;
     p;
     connected = false;
+    latestIncomingPackage: ArrayBuffer = null;
     
     constructor(world: World) {
         this.world = world;
@@ -31,7 +32,7 @@ export class Network
         }
 
         this.p.on('data', data => {
-            this.world.deserializeRecursive(data.buffer);
+            this.latestIncomingPackage = data.buffer;
         });
         this.connected = true;
     }
@@ -41,5 +42,9 @@ export class Network
         if(this.connected) {
             this.p.send(this.world.serializeRecursive());
         }
+
+        if(this.latestIncomingPackage !== null)
+            this.world.deserializeRecursive(this.latestIncomingPackage);
+            this.latestIncomingPackage = null;
     }
 }
