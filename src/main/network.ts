@@ -4,9 +4,9 @@ import { World } from "./world";
 export class Network 
 {
     //TODO: we probably want different update rates for ball and paddle. paddle every frame and ball less frequent?
-    static readonly FRAMES_PER_UPDATE = 1;  //how often should the physics state be sent
-    static readonly BUFFER_DELAY = 10       //how many packets should the buffer be ahead
-    static readonly BUFFER_LENGTH = 20;     //some number. 10 is probably large enough
+    //static readonly FRAMES_PER_UPDATE = 1;  //how often should the physics state be sent
+    //static readonly BUFFER_DELAY = 10       //how many packets should the buffer be ahead
+    //static readonly BUFFER_LENGTH = 20;     //some number. 10 is probably large enough
 
     world: World;
     p;
