@@ -39,14 +39,13 @@ export class Serializer {
     deserialize(view: DataView){
         var offset = 0;
         var skip = view.getUint8(offset++);
-
-        for(let idx = 0; idx < this.objects.length; idx++){
+        
+        for(let o of this.objects){
             if(skip == 250) {
                 break;
             } else if(skip > 0) {
                 skip -= 1;
             } else {
-                const o = this.objects[idx];
                 o.readOffset = offset;
                 o.readView  = view;
                 o.deserialize();
@@ -54,6 +53,7 @@ export class Serializer {
                 skip = view.getUint8(offset++);
             }
         }
+
     }
 }
 
