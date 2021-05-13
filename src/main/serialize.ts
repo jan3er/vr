@@ -128,6 +128,12 @@ export abstract class Serializable {
         const length = this._serializeRecursive(new Uint8Array(buffer), 0);
         return new Uint8Array(buffer,0,length);
     }
+    
+    _getSenders(){
+
+    }
+
+    
     _serializeRecursive(view: Uint8Array, offset: number){
     
         //0 means send nothing, 1 means only send me, 2 means me and my children

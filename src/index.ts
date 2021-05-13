@@ -1,4 +1,4 @@
-import "./foo/game";
+import "./main/game";
 
 
 // const babylonInit = async () => {
