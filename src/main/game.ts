@@ -1,5 +1,6 @@
 import { ArcRotateCamera, CannonJSPlugin, Engine, HemisphericLight, Scene, Vector3 } from "@babylonjs/core";
 import { Network } from "./network";
+import { Serializer } from "./serialize2";
 import { World } from "./world";
 
 
@@ -30,11 +31,13 @@ async function init(){
 
     // Default intensity is 1. Let's dim the light a small amount
     light.intensity = 0.7;
+    
+    const serializer = new Serializer();
 
     // Create the scene
-    const world = new World(scene);
+    const world = new World(scene, serializer);
 
-    const network = new Network(world);
+    const network = new Network(world, serializer);
     network.start();
 
     scene.registerBeforeRender(() => {
@@ -43,7 +46,7 @@ async function init(){
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(() => {
         const start = new Date().getTime();
-        world.updateRecursive();
+        world.update();
         network.mainLoop();
         const end = new Date().getTime();
         world.texts[4].text = engine.getFps().toFixed() + " fps";

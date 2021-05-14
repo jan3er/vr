@@ -11,27 +11,31 @@ import { AdvancedDynamicTexture } from "@babylonjs/gui/2D/advancedDynamicTexture
 
 import { NetworkObject } from "./object";
 import { NetworkController } from "./player";
-import { Serializable } from "./serialize";
+import { Serializable, Serializer } from "./serialize2";
 
 export class World extends Serializable{
-    scene:   Scene;
-    players: NetworkController[];
-    objects: NetworkObject[];
-    texts:   TextBlock[];
+    scene:    Scene;
+    players:  NetworkController[];
+    objects:  NetworkObject[];
+    texts:    TextBlock[];
+    children: Serializable[];
 
-    constructor(scene: Scene){
+    constructor(scene: Scene, serializer: Serializer){
         super();
         
         this.scene = scene;
 
+        World.MakeGround(scene);
+        this.texts = World.MakeTexts(scene);
+
         //two players
         //if we want two controlllers per player just add them with the same id?
-        this.players = [new NetworkController(0,this), new NetworkController(1,this)];
+        this.players = [new NetworkController(0,this,serializer), new NetworkController(1,this,serializer)];
 
         //a bunch of network objects
         this.objects = [];
         for(let i = 0; i < 1; i++){
-            const sphere = NetworkObject.MakeSphere(this, scene);
+            const sphere = NetworkObject.MakeSphere(this, scene, serializer);
             sphere.mesh.position.x = i/2;
             this.objects.push(sphere);
         }
@@ -42,8 +46,14 @@ export class World extends Serializable{
         //in the end put everything that should be send in the children array
         this.children = (<Serializable[]>this.players).concat(<Serializable[]>this.objects);
 
-        World.MakeGround(scene);
-        this.texts = World.MakeTexts(scene);
+        
+        this.finalize(serializer);
+    }
+    
+    update(){
+        for(let c of this.children){
+            c.update();
+        }
     }
     
     ///////////////////////////////////////////////////

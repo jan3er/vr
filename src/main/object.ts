@@ -3,13 +3,13 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { Scene } from "@babylonjs/core/scene";
 import { NetworkController } from "./player";
-import { Serializable } from "./serialize";
+import { Serializable, Serializer } from "./serialize2";
 import { World } from "./world";
 
 export class NetworkObject extends Serializable {
 
     //only accept incoming changes from outside if the remote authority is at least as large as the local one
-    localAuthority = Math.floor(Math.random()*100);
+    localAuthority = 100 + Math.floor(Math.random()*10);
     remoteAuthority = 0;
 
     world: World;
@@ -25,14 +25,15 @@ export class NetworkObject extends Serializable {
     //the mesh with all its physics property, will probably be set by some static constructor method
     mesh: Mesh;
 
-    constructor(mesh: Mesh, world: World){
+    constructor(mesh: Mesh, world: World, serializer: Serializer){
         super();
-        this.world = world;
         this.mesh = mesh;
+        this.world = world;
 
         this.world.players.forEach(player => {
             this.players[player.id] = player;
         });
+        this.finalize(serializer);
     }
 
     //connect all the players and objects by setting collision callbacks between them
@@ -52,8 +53,8 @@ export class NetworkObject extends Serializable {
     //todo: write a function that gets called once per frame and make sure it gets called
     //here we can set the color based on who controls this
     update(){
-        this.world.texts[0].text = "" + this.remoteAuthority;
-        this.world.texts[1].text = "" + this.localAuthority;
+        this.world.texts[0].text = "localAuth:  " + this.localAuthority;
+        this.world.texts[1].text = "remoteAuth: " + this.remoteAuthority;
         
         //this.world.texts[10].text = "" + this.mesh.position;
         //this.world.texts[11].text = "" + this.mesh.rotationQuaternion;
@@ -112,14 +113,21 @@ export class NetworkObject extends Serializable {
         console.log("relsease!");
     }
 
-    shouldSend(){
-        return this.localAuthority >= this.remoteAuthority;
+    getPriority(){
+        return 1;
+        //if(this.localAuthority >= this.remoteAuthority){
+            //return 1;
+        //} else {
+            //return -1;
+        //}
     }
     serialize(){
+        //TODO: wrap around logic!
+        //otherwise 8 bits is way to little!
         this.writeUint8(this.localAuthority);
         var sendId = this.grabber === null ? 123 : this.grabber.id;
         this.writeUint8(sendId);
-        this.world.texts[2].text = "send: " + sendId;
+        this.world.texts[3].text = "sendingAuth: " + this.localAuthority;
         if(this.grabber === null){
             this.writeVector3(this.mesh.position);
             this.writeQuaternion(this.mesh.rotationQuaternion);
@@ -134,6 +142,7 @@ export class NetworkObject extends Serializable {
     }
     deserialize(){
         this.remoteAuthority = this.readUint8();
+        this.world.texts[2].text = "incommingAuth:  " + this.remoteAuthority;
         if(this.remoteAuthority >= this.localAuthority){
             const id = this.readUint8();
             var getGrabber = id === 123 ? null : this.players[id];
@@ -158,7 +167,7 @@ export class NetworkObject extends Serializable {
         }  
     }
 
-    static MakeSphere(world: World, scene: Scene){
+    static MakeSphere(world: World, scene: Scene, serializer: Serializer){
         const SIZE = 0.2;
         const MASS = 2;
         const RESTITUTION = 0.9;
@@ -182,7 +191,7 @@ export class NetworkObject extends Serializable {
         const material = new StandardMaterial("", scene);
         material.diffuseColor = new Color3(1, 0, 1);
         mesh.material = material;
-        return new NetworkObject(mesh, world);
+        return new NetworkObject(mesh, world, serializer);
     }
 
 }

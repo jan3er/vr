@@ -1,5 +1,5 @@
 import { Mesh, Scene, SphereBuilder, Vector3, PhysicsImpostor, StandardMaterial, Color3, KeyboardEventTypes, Quaternion } from "@babylonjs/core";
-import { Serializable } from "./serialize";
+import { Serializable, Serializer } from "./serialize2";
 import { World } from "./world";
 
 export class NetworkController extends Serializable{
@@ -30,7 +30,13 @@ export class NetworkController extends Serializable{
     static readonly SIZE = 0.2;
     static readonly RESTITUTION = 0.9;
 
-    shouldSend() { return this.isLocal };
+    getPriority() { 
+        if(this.isLocal){
+            return 999;
+        } else {
+            return -1;
+        }
+    };
 
     serialize() {
         this.writeVector3(this.mesh.position);
@@ -44,7 +50,7 @@ export class NetworkController extends Serializable{
     }
 
 
-    constructor(id: number, world: World){
+    constructor(id: number, world: World, serializer: Serializer){
         super();
         this.id = id;
         this.world = world;
@@ -108,6 +114,7 @@ export class NetworkController extends Serializable{
             }
         });    
 
+        this.finalize(serializer);
     }
     
     

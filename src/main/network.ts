@@ -1,4 +1,5 @@
 import { makeConnection } from "./makeConnection";
+import { Serializer } from "./serialize2";
 import { World } from "./world";
 
 export class Network 
@@ -12,9 +13,11 @@ export class Network
     p;
     connected = false;
     latestIncomingPackage: ArrayBuffer = null;
+    serializer: Serializer;
     
-    constructor(world: World) {
+    constructor(world: World, serializer: Serializer) {
         this.world = world;
+        this.serializer = serializer;
     }
 
     //starts establishing the connection. to be called once at the beginning
@@ -40,11 +43,13 @@ export class Network
     //to be called once every render frame
     mainLoop() {
         if(this.connected) {
-            this.p.send(this.world.serializeRecursive());
+            const pkg = this.serializer.serialize();
+            this.world.texts[7].text = "" + pkg;
+            this.p.send(pkg);
         }
 
         if(this.latestIncomingPackage !== null)
-            this.world.deserializeRecursive(this.latestIncomingPackage);
+            this.serializer.deserialize(this.latestIncomingPackage);
             this.latestIncomingPackage = null;
     }
 }
