@@ -1,4 +1,4 @@
-import { ArcRotateCamera, CannonJSPlugin, Engine, HemisphericLight, Scene, Vector3 } from "@babylonjs/core";
+import { ArcRotateCamera, CannonJSPlugin, Engine, HemisphericLight, Scene, SceneInstrumentation, Vector3 } from "@babylonjs/core";
 import { Network } from "./network";
 import { Serializer } from "./serialize2";
 import { World } from "./world";
@@ -15,7 +15,7 @@ async function init(){
     // This creates a basic Babylon Scene object (non-mesh)
     const scene = new Scene(engine);
 
-    scene.enablePhysics(new Vector3(0,-10, 0), new CannonJSPlugin(null, 100, require("cannon")));
+    scene.enablePhysics(new Vector3(0,-10, 0), new CannonJSPlugin(null, 10, require("cannon")));
 
     // This creates and positions a free camera (non-mesh)
     const camera = new ArcRotateCamera("my first camera", 0, Math.PI / 7, 5, new Vector3(0, 0, 0), scene);
@@ -36,12 +36,16 @@ async function init(){
 
     // Create the scene
     const world = new World(scene, serializer);
+    serializer.logger = world.logger;
 
     const network = new Network(world, serializer);
     network.start();
-
-    scene.registerBeforeRender(() => {
-    });
+    
+    // Instrumentation
+    var inst = new SceneInstrumentation(scene);
+    inst.captureInterFrameTime = true;
+    inst.captureRenderTime = true;
+    inst.capturePhysicsTime = true
 
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(() => {
@@ -49,8 +53,11 @@ async function init(){
         world.update();
         network.mainLoop();
         const end = new Date().getTime();
-        world.texts[4].text = engine.getFps().toFixed() + " fps";
-        world.texts[5].text = "manual: " + (end - start);
+        world.logger.log("fps", engine.getFps().toFixed());
+        world.logger.log("manual", end-start);
+        world.logger.log("inst physics time", inst.physicsTimeCounter.lastSecAverage.toFixed());
+        world.logger.log("inst render time", inst.renderTimeCounter.lastSecAverage.toFixed());
+        world.logger.log("inst inter time", inst.interFrameTimeCounter.lastSecAverage.toFixed());
         scene.render();
     });
 

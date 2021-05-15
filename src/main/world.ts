@@ -13,20 +13,62 @@ import { NetworkObject } from "./object";
 import { NetworkController } from "./player";
 import { Serializable, Serializer } from "./serialize2";
 
+//prints given key, value pairs on the sceen
+//sorts them alphabetically by key before printing
+export class MyLogger{
+    static readonly MAX_KEYS = 20;
+    texts: TextBlock[] = [];
+    dict: any = {};
+    constructor(scene: Scene){
+
+        //https://www.babylonjs.com.cn/how_to/gui.html
+        var advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
+        var panel = new StackPanel();   
+        
+        panel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+        panel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP; 
+        panel.height = 0.3;
+        panel.width = 0.7;
+        advancedTexture.addControl(panel);
+
+        for(let i=0; i < MyLogger.MAX_KEYS; i++){
+            var text = new TextBlock();
+            text.text = "";
+            text.color = "white";
+            text.fontSize = 24;
+            text.width = "500px";
+            text.height = "30px";
+            text.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+            panel.addControl(text);
+            advancedTexture.addControl(text);
+            this.texts.push(text);
+        }
+    }
+    
+    log(key, value){
+        this.dict[key] = value;
+        var i = 0;
+        for (let key of Object.keys(this.dict).sort()){
+            this.texts[i].text = "" + key + ": " + this.dict[key];
+            i++;
+        }
+    }
+}
+
 export class World extends Serializable{
     scene:    Scene;
     players:  NetworkController[];
     objects:  NetworkObject[];
-    texts:    TextBlock[];
     children: Serializable[];
+    logger:   MyLogger;
+    
 
     constructor(scene: Scene, serializer: Serializer){
         super();
-        
         this.scene = scene;
-
+        this.logger = new MyLogger(scene);
+        
         World.MakeGround(scene);
-        this.texts = World.MakeTexts(scene);
 
         //two players
         //if we want two controlllers per player just add them with the same id?
@@ -34,7 +76,7 @@ export class World extends Serializable{
 
         //a bunch of network objects
         this.objects = [];
-        for(let i = 0; i < 1; i++){
+        for(let i = 0; i < 10; i++){
             const sphere = NetworkObject.MakeSphere(this, scene, serializer);
             sphere.mesh.position.x = i/2;
             this.objects.push(sphere);
@@ -85,35 +127,6 @@ export class World extends Serializable{
             walls.push(wall);
         });
         return walls;
-    }
-    
-    static MakeTexts(scene): TextBlock[] {
-        //https://www.babylonjs.com.cn/how_to/gui.html
-        var advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
-        var panel = new StackPanel();   
-        
-        console.log("maketexts");
-        
-        panel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
-        panel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP; 
-        panel.height = 0.3;
-        panel.width = 0.3;
-        advancedTexture.addControl(panel);
-
-        var texts = []
-        for(let i=0; i < 20; i++){
-            var text = new TextBlock();
-            text.text = "";
-            text.color = "white";
-            text.fontSize = 24;
-            text.width = "500px";
-            text.height = "30px";
-            text.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
-            panel.addControl(text);
-            advancedTexture.addControl(text);
-            texts.push(text);
-        }
-        return texts;
     }
 }
 

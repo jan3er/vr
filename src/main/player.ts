@@ -39,12 +39,12 @@ export class NetworkController extends Serializable{
     };
 
     serialize() {
-        this.writeVector3(this.mesh.position);
+        this.writeVector3(this.mesh.position, 5);
         this.writeQuaternion(this.mesh.rotationQuaternion);
     }
     deserialize() {
         if(!this.isLocal) {
-            this.mesh.position = this.readVector3();
+            this.mesh.position = this.readVector3(5);
             this.mesh.rotationQuaternion.copyFrom(this.readQuaternion());   
         }
     }

@@ -1,31 +1,31 @@
 import { Quaternion, Vector3 } from "@babylonjs/core/Maths/math";
+import { MyLogger } from "./world";
 
 export class Serializer {
     objects: Serializable[] = [];
+    logger: MyLogger;
     
-    serialize(byteLimit: number = 1000){
-        this.objects.forEach(o => o._send = false);
-        //var prioritized = this.objects.
-            //filter(a => a.getPriority() > 0).
-            //sort((a,b) => a.getPriority() - b.getPriority());
-
-        //var i = byteLimit-1;
-        //TODO: somehow broken unless we send everything
-        for(let o of this.objects){
-            //i -= o._byteLength+1;
-            o._send = true;
-
-        }
-        //while (prioritized.length != 0){
-            //const next = prioritized.pop()
-            ////if(i < 0){ 
-                ////break;
-            ////}
-            //next._send = true;
-        //} 
-
-        //this.objects.forEach(o => o._send = true);
+    serialize(byteLimit: number = 100){
         
+        //sort objects by priority, keeping only those with positive priority
+        var prioritized = this.objects.
+            filter(a => a.getPriority() >= 0).
+            sort((a,b) => b.getPriority() - a.getPriority());
+
+        
+        //mark as many as possible for sending while keeping the byte limit
+        this.objects.forEach(o => o._send = false);
+        var i = byteLimit-1;
+        for(let o of prioritized){
+            i -= o._byteLength+1;
+            if(i < 0){ 
+                break;
+            }
+            o._send = true;
+        }
+
+        //we skip sending some packages. before each package
+        //we write down how many were skipped.
         const buffer = new ArrayBuffer(byteLimit);
         const view = new DataView(buffer);
         var skip = 0;
@@ -38,6 +38,7 @@ export class Serializer {
                 }
             } else {
                 view.setUint8(offset++, skip);
+                skip = 0;
                 o._writeOffset = offset;
                 o._writeView  = view;
                 o.serialize();
@@ -45,6 +46,7 @@ export class Serializer {
             }
         }
         view.setUint8(offset++, 250);
+        this.logger.log("package length", offset);
         return new Uint8Array(buffer,0,offset);
     }
 
@@ -111,7 +113,19 @@ export abstract class Serializable {
     }
     readUint8(){
         this._readOffset += 1;
-        return this._readView.getInt8(this._readOffset-1);
+        return this._readView.getUint8(this._readOffset-1);
+    }
+
+    //press a float uniformly distributed into 16 bits, covering a range of maxVal units
+    writeFloat16(x: number, maxVal){
+        if(this._writeView !== undefined){
+            this._writeView.setInt16(this._writeOffset, x*32768/maxVal);
+        }
+        this._writeOffset += 2;
+    }
+    readFloat16(maxVal){
+        this._readOffset += 2;
+        return this._readView.getInt16(this._readOffset-2)/32768*maxVal;
     }
 
     writeFloat32(x: number){
@@ -125,43 +139,45 @@ export abstract class Serializable {
         return this._readView.getFloat32(this._readOffset-4);
     }
 
-    writeVector3(vec: Vector3){
-        if(this._writeView !== undefined){
-            this._writeView.setFloat32(this._writeOffset+0, vec.x);
-            this._writeView.setFloat32(this._writeOffset+4, vec.y);
-            this._writeView.setFloat32(this._writeOffset+8, vec.z);
-        }
-        this._writeOffset += 3*4;
+    writeVector3(vec: Vector3, maxVal){
+        this.writeFloat16(vec.x, maxVal);
+        this.writeFloat16(vec.y, maxVal);
+        this.writeFloat16(vec.z, maxVal);
     }
-    readVector3(){
-        const vec = new Vector3(
-            this._readView.getFloat32(this._readOffset+0),
-            this._readView.getFloat32(this._readOffset+4),
-            this._readView.getFloat32(this._readOffset+8)
+    readVector3(maxVal){
+        return new Vector3(
+            this.readFloat16(maxVal),
+            this.readFloat16(maxVal),
+            this.readFloat16(maxVal),
         );
-        this._readOffset += 4*3;
-        return vec;
-    
+    }
+
+    writeVector3Vel(vec: Vector3){
+        this.writeVector3(vec, 100);
+    }
+    readVector3Vel(){
+        return this.readVector3(100);
+    }
+    writeVector3Pos(vec: Vector3){
+        this.writeVector3(vec, 5);
+    }
+    readVector3Pos(){
+        return this.readVector3(5);
     }
 
     writeQuaternion(q: Quaternion){
-        if(this._writeView !== undefined){
-            this._writeView.setFloat32(this._writeOffset+0,  q.x);
-            this._writeView.setFloat32(this._writeOffset+4,  q.y);
-            this._writeView.setFloat32(this._writeOffset+8,  q.z);
-            this._writeView.setFloat32(this._writeOffset+12, q.w);
-        }
-        this._writeOffset += 4*4;
+        this.writeFloat16(q.x, 1);
+        this.writeFloat16(q.y, 1);
+        this.writeFloat16(q.z, 1);
+        this.writeFloat16(q.w, 1);
     }
     readQuaternion(){
-        const q = new Quaternion(
-            this._readView.getFloat32(this._readOffset+0 ),
-            this._readView.getFloat32(this._readOffset+4 ),
-            this._readView.getFloat32(this._readOffset+8 ),
-            this._readView.getFloat32(this._readOffset+12)
+        return new Quaternion(
+            this.readFloat16(1),
+            this.readFloat16(1),
+            this.readFloat16(1),
+            this.readFloat16(1)
         );
-        this._readOffset += 4*4;
-        return q;
     }
 
 }
@@ -169,27 +185,22 @@ export abstract class Serializable {
 
 /////////////////////////////////////////////////////////////////
 
-//export class Foo extends Serializable{
-    //vec1 = new Vector3(0,0,0);
-    //vec2 = new Vector3(0,0,0);
-    //vec3 = new Vector3(0,0,0);
-    //q = new Quaternion(0,0,0);
-    //serialize() {
-        //this.writeVector3(this.vec1);
-        //this.writeVector3(this.vec2);
-        //this.writeVector3(this.vec3);
-        //this.writeQuaternion(this.q);
-    //}
-    //deserialize() {
-        //this.vec1 = this.readVector3();
-        //this.vec2 = this.readVector3();
-        //this.vec3= this.readVector3();
-        //this.q = this.readQuaternion();
-    //}
-//}
-//export class Ball extends Serializable{
+//class Ball extends Serializable{
     //value1 = 12;
     //value2 = 13;
+    //priority;
+    
+    //constructor(serializer: Serializer){
+        //super();
+        //this.finalize(serializer);
+        //this.priority = serializer.objects.length;
+        //this.value1 = this.priority;
+        //this.value2 = this.priority;
+    //}
+    
+    //getPriority(){
+        //return this.priority;
+    //}
 
     //serialize() {
         //this.writeUint8(this.value1);
@@ -208,15 +219,14 @@ export abstract class Serializable {
 //for(let i = 0; i < 10; i++){
     //balls.push(new Ball(serializer));
 //}
-//const pkg = serializer.serialize(5);
+//const pkg = serializer.serialize(7);
 
 //for(let b of balls){
     //b.value1 = 0;
 //}
 
 //console.log(pkg);
-//const view = new DataView(pkg.buffer);
-//serializer.deserialize(view);
+//serializer.deserialize(pkg.buffer);
 
 //for(let b of balls){
     //console.log(b.value1);

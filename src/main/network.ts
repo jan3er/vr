@@ -44,7 +44,6 @@ export class Network
     mainLoop() {
         if(this.connected) {
             const pkg = this.serializer.serialize();
-            this.world.texts[7].text = "" + pkg;
             this.p.send(pkg);
         }
 

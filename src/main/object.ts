@@ -9,8 +9,10 @@ import { World } from "./world";
 export class NetworkObject extends Serializable {
 
     //only accept incoming changes from outside if the remote authority is at least as large as the local one
-    localAuthority = 100 + Math.floor(Math.random()*10);
-    remoteAuthority = 0;
+    localAuthority = 0;
+    remoteAuthority = 1;
+    
+    priority = 0;
 
     world: World;
     players: NetworkController[] = [];
@@ -42,24 +44,48 @@ export class NetworkObject extends Serializable {
             objects.forEach(object => {
                 object.mesh.physicsImpostor.registerOnPhysicsCollide(player.mesh.physicsImpostor, (main, collided) => {
                     if(player.isLocal && object.grabber === null) {
-                        object.localAuthority = object.remoteAuthority + 1;
+                        object.takeAuthority();
                         console.log("bang!");
                     }
                 });
             });
         });
     };
+    
+    takeAuthority(){
+        this.localAuthority = (this.remoteAuthority + 1) % 10;
+        this.priority = Math.max(this.priority,10);
+    }
+    hasAuthority(){
+        var local = this.localAuthority;
+        var remote = this.remoteAuthority;
+        if(remote < local - 5){
+            remote += 10;
+        } else  if(local < remote - 5) {
+            local += 10;
+        }
+        return local >= remote;
+    }
 
-    //todo: write a function that gets called once per frame and make sure it gets called
-    //here we can set the color based on who controls this
+    getPriority(){
+        return this.priority;
+        //if(this.localAuthority >= this.remoteAuthority){
+            //return 1;
+        //} else {
+            //return -1;
+        //}
+    }
+
     update(){
-        this.world.texts[0].text = "localAuth:  " + this.localAuthority;
-        this.world.texts[1].text = "remoteAuth: " + this.remoteAuthority;
-        
-        //this.world.texts[10].text = "" + this.mesh.position;
-        //this.world.texts[11].text = "" + this.mesh.rotationQuaternion;
-        //this.world.texts[12].text = "" + this.relativeGrabPosition;
-        //this.world.texts[13].text = "" + this.relativeGrabRotationQuaternion;
+        if(this.hasAuthority()){
+            this.priority++;
+        } else {
+            this.priority = -1;
+        }
+        this.world.logger.log("priority", this.priority);
+
+        this.world.logger.log("authLocal ", this.localAuthority);
+        this.world.logger.log("authRemote", this.remoteAuthority);
     
         if(this.grabber !== null){
             const v = this.relativeGrabPosition;
@@ -72,7 +98,7 @@ export class NetworkObject extends Serializable {
         }
             
 
-        if(this.localAuthority >= this.remoteAuthority){
+        if(this.hasAuthority()){
             (<StandardMaterial>this.mesh.material).diffuseColor = new Color3(1,0,0);
         } else {
             (<StandardMaterial>this.mesh.material).diffuseColor = new Color3(0.9,0.9,0.9);
@@ -91,7 +117,7 @@ export class NetworkObject extends Serializable {
     grab(player: NetworkController){
         if(this.grabber === null && player.isLocal){
             this.grabber = player;
-            this.localAuthority = this.remoteAuthority + 1;
+            this.takeAuthority();
             this.mesh.setParent(player.mesh);
             this.relativeGrabPosition = this.mesh.position;
             this.relativeGrabRotationQuaternion.copyFrom(this.mesh.rotationQuaternion);
@@ -113,37 +139,36 @@ export class NetworkObject extends Serializable {
         console.log("relsease!");
     }
 
-    getPriority(){
-        return 1;
-        //if(this.localAuthority >= this.remoteAuthority){
-            //return 1;
-        //} else {
-            //return -1;
-        //}
-    }
     serialize(){
+        this.world.logger.log("-serialize", Math.random());
+        this.priority = 0;
+        
+        this.world.logger.log("0linvel", this.mesh.physicsImpostor.getLinearVelocity().x);
+        this.world.logger.log("0angvel", this.mesh.physicsImpostor.getAngularVelocity().x);
+
         //TODO: wrap around logic!
         //otherwise 8 bits is way to little!
         this.writeUint8(this.localAuthority);
         var sendId = this.grabber === null ? 123 : this.grabber.id;
         this.writeUint8(sendId);
-        this.world.texts[3].text = "sendingAuth: " + this.localAuthority;
+        this.world.logger.log("authSend", this.localAuthority);
         if(this.grabber === null){
-            this.writeVector3(this.mesh.position);
+            this.writeVector3Pos(this.mesh.position);
             this.writeQuaternion(this.mesh.rotationQuaternion);
-            this.writeVector3(this.mesh.physicsImpostor.getLinearVelocity());
-            this.writeVector3(this.mesh.physicsImpostor.getAngularVelocity());
+            this.writeVector3Vel(this.mesh.physicsImpostor.getLinearVelocity());
+            this.writeVector3Vel(this.mesh.physicsImpostor.getAngularVelocity());
         } else {
-            this.writeVector3(this.relativeGrabPosition);
+            this.writeVector3(this.relativeGrabPosition, 5);
             this.writeQuaternion(this.relativeGrabRotationQuaternion);
-            this.writeVector3(this.mesh.physicsImpostor.getLinearVelocity());
-            this.writeVector3(this.mesh.physicsImpostor.getAngularVelocity());
+            this.writeVector3Vel(this.mesh.physicsImpostor.getLinearVelocity());
+            this.writeVector3Vel(this.mesh.physicsImpostor.getAngularVelocity());
         }
     }
     deserialize(){
+        this.world.logger.log("-deserialize", Math.random());
         this.remoteAuthority = this.readUint8();
-        this.world.texts[2].text = "incommingAuth:  " + this.remoteAuthority;
-        if(this.remoteAuthority >= this.localAuthority){
+        this.world.logger.log("authincomming", this.remoteAuthority);
+        if(!this.hasAuthority()){
             const id = this.readUint8();
             var getGrabber = id === 123 ? null : this.players[id];
             
@@ -154,15 +179,15 @@ export class NetworkObject extends Serializable {
             }
 
             if(this.grabber === null){
-                this.mesh.position = this.readVector3();
+                this.mesh.position = this.readVector3Pos();
                 this.mesh.rotationQuaternion.copyFrom(this.readQuaternion());
-                this.mesh.physicsImpostor.setLinearVelocity(this.readVector3());
-                this.mesh.physicsImpostor.setAngularVelocity(this.readVector3());
+                this.mesh.physicsImpostor.setLinearVelocity(this.readVector3Vel());
+                this.mesh.physicsImpostor.setAngularVelocity(this.readVector3Vel());
             } else {
-                this.relativeGrabPosition = this.readVector3();
+                this.relativeGrabPosition = this.readVector3(5);
                 this.relativeGrabRotationQuaternion.copyFrom(this.readQuaternion());
-                this.mesh.physicsImpostor.setLinearVelocity(this.readVector3());
-                this.mesh.physicsImpostor.setAngularVelocity(this.readVector3());
+                this.mesh.physicsImpostor.setLinearVelocity(this.readVector3Vel());
+                this.mesh.physicsImpostor.setAngularVelocity(this.readVector3Vel());
             }
         }  
     }
