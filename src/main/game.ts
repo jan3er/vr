@@ -1,7 +1,9 @@
-import { ArcRotateCamera, CannonJSPlugin, Engine, HemisphericLight, Scene, SceneInstrumentation, Vector3 } from "@babylonjs/core";
+import { AmmoJSPlugin, ArcRotateCamera, CannonJSPlugin, Engine, HemisphericLight, Scene, SceneInstrumentation, Vector3, WebXRState } from "@babylonjs/core";
 import { Network } from "./network";
-import { Serializer } from "./serialize2";
+import { Serializer } from "./serialize";
 import { World } from "./world";
+
+//import { ammoModule, ammoReadyPromise } from "./ammo-thing";
 
 
 async function init(){
@@ -14,11 +16,19 @@ async function init(){
 
     // This creates a basic Babylon Scene object (non-mesh)
     const scene = new Scene(engine);
+    
+    //await ammoReadyPromise;
 
-    scene.enablePhysics(new Vector3(0,-10, 0), new CannonJSPlugin(null, 10, require("cannon")));
+    //scene.enablePhysics(new Vector3(0,-10, 0), new AmmoJSPlugin(null, 10, ammoModule));
+
+    scene.enablePhysics(new Vector3(0,-9.81, 0), new CannonJSPlugin(null, 500, require("cannon")));
+    
+    //how do i wake them up again?
+    //scene.getPhysicsEngine().getPhysicsPlugin().world.allowSleep = true;
+
 
     // This creates and positions a free camera (non-mesh)
-    const camera = new ArcRotateCamera("my first camera", 0, Math.PI / 7, 5, new Vector3(0, 0, 0), scene);
+    const camera = new ArcRotateCamera("my first camera", 0, Math.PI / 7, 3, new Vector3(0, 0, 0), scene);
 
     // This targets the camera to scene origin
     camera.setTarget(Vector3.Zero());
@@ -32,11 +42,49 @@ async function init(){
     // Default intensity is 1. Let's dim the light a small amount
     light.intensity = 0.7;
     
+    const xr = await scene.createDefaultXRExperienceAsync({});
+    /*xr.baseExperience.camera.position = new Vector3(0,1,0);*/
+
+    //const xrHelper = await BABYLON.WebXRExperienceHelper.CreateAsync(this.scene);
+    //const sessionManager = await xrHelper.enterXRAsync("immersive-vr", "unbounded" );
+
+    console.log(xr);
+    xr.baseExperience.onStateChangedObservable.add((state) => {
+        switch (state) {
+            case WebXRState.IN_XR:
+                // XR is initialized and already submitted one frame
+                xr.baseExperience.camera.position = new Vector3(0,1,0);
+
+            case WebXRState.ENTERING_XR:
+                // xr is being initialized, enter XR request was made
+
+            case WebXRState.EXITING_XR:
+                // xr exit request was made. not yet done.
+            case WebXRState.NOT_IN_XR:
+                // self explanatory - either out or not yet in XR
+        }
+    });
+    
     const serializer = new Serializer();
 
     // Create the scene
     const world = new World(scene, serializer);
     serializer.logger = world.logger;
+    
+    //if we enter vr mode, set the controller
+    xr.input.onControllerAddedObservable.add(inputSource => {
+        if(inputSource.uniqueId.includes("right")){
+            for(let player of world.players){
+                if (player.isLocal){
+                    player.vrInput = inputSource;
+                }
+            }
+        }
+    });   
+    
+
+    
+    
 
     const network = new Network(world, serializer);
     network.start();

@@ -1,14 +1,9 @@
 import { makeConnection } from "./makeConnection";
-import { Serializer } from "./serialize2";
+import { Serializer } from "./serialize";
 import { World } from "./world";
 
 export class Network 
 {
-    //TODO: we probably want different update rates for ball and paddle. paddle every frame and ball less frequent?
-    //static readonly FRAMES_PER_UPDATE = 1;  //how often should the physics state be sent
-    //static readonly BUFFER_DELAY = 10       //how many packets should the buffer be ahead
-    //static readonly BUFFER_LENGTH = 20;     //some number. 10 is probably large enough
-
     world: World;
     p;
     connected = false;
@@ -32,6 +27,18 @@ export class Network
             document.title = "Player 2";
             this.world.players[0].isLocal = false;
             this.world.players[1].isLocal = true;
+        }
+
+        let i = this.p.initiator;
+        for(let o of this.world.objects){
+            if(i){
+                o.localAuthority = 1;
+                o.remoteAuthority = 0;
+            } else {
+                o.localAuthority = 0;
+                o.remoteAuthority = 1;
+            }
+            i = !i;
         }
 
         this.p.on('data', data => {

@@ -14,7 +14,7 @@ module.exports = merge(common, {
         //contentBase: path.resolve(appDirectory, "public"),
         compress: true,
         //publicPath: '/',
-        host: '0.0.0.0', // enable to access from other devices on the network
+        //host: '0.0.0.0', // enable to access from other devices on the network
         disableHostCheck: true,
         port: 8080,
         //https: true // enable when HTTPS is needed (like in WebXR)

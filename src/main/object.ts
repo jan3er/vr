@@ -3,13 +3,13 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { Scene } from "@babylonjs/core/scene";
 import { NetworkController } from "./player";
-import { Serializable, Serializer } from "./serialize2";
+import { Serializable, Serializer } from "./serialize";
 import { World } from "./world";
 
 export class NetworkObject extends Serializable {
 
     //only accept incoming changes from outside if the remote authority is at least as large as the local one
-    localAuthority = 0;
+    localAuthority = Math.floor(Math.random()*100);
     remoteAuthority = 1;
     
     priority = 0;
@@ -26,6 +26,9 @@ export class NetworkObject extends Serializable {
     
     //the mesh with all its physics property, will probably be set by some static constructor method
     mesh: Mesh;
+    
+    static counter = 0;
+    id: number;
 
     constructor(mesh: Mesh, world: World, serializer: Serializer){
         super();
@@ -35,45 +38,60 @@ export class NetworkObject extends Serializable {
         this.world.players.forEach(player => {
             this.players[player.id] = player;
         });
+        
+        this.id = NetworkObject.counter++;
+        
         this.finalize(serializer);
     }
 
     //connect all the players and objects by setting collision callbacks between them
     static RegisterCollisionCallbacks(players: NetworkController[], objects: NetworkObject[]){
-        players.forEach(player => {
-            objects.forEach(object => {
+        for(let player of players){
+            for(let object of objects){
                 object.mesh.physicsImpostor.registerOnPhysicsCollide(player.mesh.physicsImpostor, (main, collided) => {
                     if(player.isLocal && object.grabber === null) {
                         object.takeAuthority();
                         console.log("bang!");
                     }
                 });
-            });
-        });
+            }
+        }
+        for(let o1 of objects){
+            for(let o2 of objects){
+                o1.mesh.physicsImpostor.registerOnPhysicsCollide(o2.mesh.physicsImpostor, (main, collided) => {
+                    o1.distributeAuthorityOnCollision(o2);
+                });
+            }
+        }
     };
     
+    distributeAuthorityOnCollision(other: NetworkObject){
+        const myForce = this.mesh.physicsImpostor.getLinearVelocity().length() * this.mesh.physicsImpostor.mass;
+        const yourForce = other.mesh.physicsImpostor.getLinearVelocity().length() * other.mesh.physicsImpostor.mass;
+        this.world.logger.log("difference", Math.abs(yourForce-myForce));
+        //const myForce = this.id;
+        //const yourForce = other.id;
+        if(this.hasAuthority() && myForce >= yourForce){
+            other.takeAuthority();
+        } 
+    }
     takeAuthority(){
-        this.localAuthority = (this.remoteAuthority + 1) % 10;
+        this.localAuthority = (this.remoteAuthority + 1) % 200;
         this.priority = Math.max(this.priority,10);
     }
     hasAuthority(){
         var local = this.localAuthority;
         var remote = this.remoteAuthority;
-        if(remote < local - 5){
-            remote += 10;
-        } else  if(local < remote - 5) {
-            local += 10;
+        if(remote < local - 100){
+            remote += 200;
+        } else  if(local < remote - 100) {
+            local += 200;
         }
         return local >= remote;
     }
 
     getPriority(){
         return this.priority;
-        //if(this.localAuthority >= this.remoteAuthority){
-            //return 1;
-        //} else {
-            //return -1;
-        //}
     }
 
     update(){
@@ -111,6 +129,61 @@ export class NetworkObject extends Serializable {
         }
 
     }
+    
+    /////////////////////////////////////////////////////////////////////////////////////
+
+    serialize(){
+        //this.world.logger.log("-serialize", Math.random());
+        this.priority = 0;
+        
+        //this.world.logger.log("0linvel", this.mesh.physicsImpostor.getLinearVelocity().x);
+        //this.world.logger.log("0angvel", this.mesh.physicsImpostor.getAngularVelocity().x);
+
+        //TODO: wrap around logic!
+        //otherwise 8 bits is way to little!
+        this.writeUint8(this.localAuthority);
+        var sendId = this.grabber === null ? 123 : this.grabber.id;
+        this.writeUint8(sendId);
+        //this.world.logger.log("authSend", this.localAuthority);
+        if(this.grabber === null){
+            this.writeVector3Pos(this.mesh.position);
+            this.writeQuaternion(this.mesh.rotationQuaternion);
+            this.writeVector3Vel(this.mesh.physicsImpostor.getLinearVelocity());
+            this.writeVector3Vel(this.mesh.physicsImpostor.getAngularVelocity());
+        } else {
+            this.writeVector3(this.relativeGrabPosition, 5);
+            this.writeQuaternion(this.relativeGrabRotationQuaternion);
+            this.writeVector3Vel(this.mesh.physicsImpostor.getLinearVelocity());
+            this.writeVector3Vel(this.mesh.physicsImpostor.getAngularVelocity());
+        }
+    }
+    deserialize(){
+        //this.world.logger.log("-deserialize", Math.random());
+        this.remoteAuthority = this.readUint8();
+        //this.world.logger.log("authincomming", this.remoteAuthority);
+        if(!this.hasAuthority()){
+            const id = this.readUint8();
+            var getGrabber = id === 123 ? null : this.players[id];
+            
+            if(this.grabber !== getGrabber){
+                if(getGrabber === null) this.mesh.setParent(null);
+                if(getGrabber !== null) this.mesh.setParent(getGrabber.mesh);
+                this.grabber = getGrabber;
+            }
+
+            if(this.grabber === null){
+                this.mesh.position = this.readVector3Pos();
+                this.mesh.rotationQuaternion.copyFrom(this.readQuaternion());
+                this.mesh.physicsImpostor.setLinearVelocity(this.readVector3Vel());
+                this.mesh.physicsImpostor.setAngularVelocity(this.readVector3Vel());
+            } else {
+                this.relativeGrabPosition = this.readVector3(5);
+                this.relativeGrabRotationQuaternion.copyFrom(this.readQuaternion());
+                this.mesh.physicsImpostor.setLinearVelocity(this.readVector3Vel());
+                this.mesh.physicsImpostor.setAngularVelocity(this.readVector3Vel());
+            }
+        }  
+    }
 
     //grab an object. this method can only be called by the local player
     //for the remote player, the grabbing state is changed via deserialization
@@ -139,64 +212,12 @@ export class NetworkObject extends Serializable {
         console.log("relsease!");
     }
 
-    serialize(){
-        this.world.logger.log("-serialize", Math.random());
-        this.priority = 0;
-        
-        this.world.logger.log("0linvel", this.mesh.physicsImpostor.getLinearVelocity().x);
-        this.world.logger.log("0angvel", this.mesh.physicsImpostor.getAngularVelocity().x);
-
-        //TODO: wrap around logic!
-        //otherwise 8 bits is way to little!
-        this.writeUint8(this.localAuthority);
-        var sendId = this.grabber === null ? 123 : this.grabber.id;
-        this.writeUint8(sendId);
-        this.world.logger.log("authSend", this.localAuthority);
-        if(this.grabber === null){
-            this.writeVector3Pos(this.mesh.position);
-            this.writeQuaternion(this.mesh.rotationQuaternion);
-            this.writeVector3Vel(this.mesh.physicsImpostor.getLinearVelocity());
-            this.writeVector3Vel(this.mesh.physicsImpostor.getAngularVelocity());
-        } else {
-            this.writeVector3(this.relativeGrabPosition, 5);
-            this.writeQuaternion(this.relativeGrabRotationQuaternion);
-            this.writeVector3Vel(this.mesh.physicsImpostor.getLinearVelocity());
-            this.writeVector3Vel(this.mesh.physicsImpostor.getAngularVelocity());
-        }
-    }
-    deserialize(){
-        this.world.logger.log("-deserialize", Math.random());
-        this.remoteAuthority = this.readUint8();
-        this.world.logger.log("authincomming", this.remoteAuthority);
-        if(!this.hasAuthority()){
-            const id = this.readUint8();
-            var getGrabber = id === 123 ? null : this.players[id];
-            
-            if(this.grabber !== getGrabber){
-                if(getGrabber === null) this.mesh.setParent(null);
-                if(getGrabber !== null) this.mesh.setParent(getGrabber.mesh);
-                this.grabber = getGrabber;
-            }
-
-            if(this.grabber === null){
-                this.mesh.position = this.readVector3Pos();
-                this.mesh.rotationQuaternion.copyFrom(this.readQuaternion());
-                this.mesh.physicsImpostor.setLinearVelocity(this.readVector3Vel());
-                this.mesh.physicsImpostor.setAngularVelocity(this.readVector3Vel());
-            } else {
-                this.relativeGrabPosition = this.readVector3(5);
-                this.relativeGrabRotationQuaternion.copyFrom(this.readQuaternion());
-                this.mesh.physicsImpostor.setLinearVelocity(this.readVector3Vel());
-                this.mesh.physicsImpostor.setAngularVelocity(this.readVector3Vel());
-            }
-        }  
-    }
 
     static MakeSphere(world: World, scene: Scene, serializer: Serializer){
         const SIZE = 0.2;
         const MASS = 2;
-        const RESTITUTION = 0.9;
-        const FRICTION = 0.01;
+        const RESTITUTION = 0.5;
+        const FRICTION = 0.1;
 
         const mesh = MeshBuilder.CreateBox("", {
             width  : SIZE,
@@ -206,11 +227,11 @@ export class NetworkObject extends Serializable {
         mesh.physicsImpostor = new PhysicsImpostor(mesh, PhysicsImpostor.BoxImpostor, 
             { 
                 mass:        MASS, 
-                restitution: RESTITUTION, 
-                friction:    FRICTION
+                //restitution: RESTITUTION, 
+                //friction:    FRICTION
             }, scene);
         mesh.position.set(0,2,0);
-
+        
         mesh.physicsImpostor.setLinearVelocity(new Vector3(0,3,0));
 
         const material = new StandardMaterial("", scene);

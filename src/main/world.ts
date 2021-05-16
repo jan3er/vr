@@ -11,7 +11,7 @@ import { AdvancedDynamicTexture } from "@babylonjs/gui/2D/advancedDynamicTexture
 
 import { NetworkObject } from "./object";
 import { NetworkController } from "./player";
-import { Serializable, Serializer } from "./serialize2";
+import { Serializable, Serializer } from "./serialize";
 
 //prints given key, value pairs on the sceen
 //sorts them alphabetically by key before printing
@@ -50,7 +50,9 @@ export class MyLogger{
         var i = 0;
         for (let key of Object.keys(this.dict).sort()){
             this.texts[i].text = "" + key + ": " + this.dict[key];
-            i++;
+            if(++i >= MyLogger.MAX_KEYS){
+                break;
+            }
         }
     }
 }
@@ -76,9 +78,9 @@ export class World extends Serializable{
 
         //a bunch of network objects
         this.objects = [];
-        for(let i = 0; i < 10; i++){
+        for(let i = 0; i < 3; i++){
             const sphere = NetworkObject.MakeSphere(this, scene, serializer);
-            sphere.mesh.position.x = i/2;
+            sphere.mesh.position.y = 1+i/4;
             this.objects.push(sphere);
         }
 
@@ -96,6 +98,22 @@ export class World extends Serializable{
         for(let c of this.children){
             c.update();
         }
+
+        for(let o1 of this.objects){
+            o1.sendTogetherWith = [];
+            for(let o2 of this.objects){
+                if (o1.mesh.intersectsMesh(o2.mesh)){
+                    o1.sendTogetherWith.push(o2);
+                }
+                /*const key:string = "-" + o1.id + o2.id;*/
+                /*if (o1.mesh.intersectsMesh(o2.mesh)){*/
+                    /*this.logger.log(key, 1)*/
+                /*} else {*/
+                    /*this.logger.log(key, 0)*/
+                /*}*/
+            }
+        }
+        
     }
     
     ///////////////////////////////////////////////////
@@ -105,8 +123,8 @@ export class World extends Serializable{
         const WIDTH = 2; //diameter of the area
         const HEIGHT = 0.5;  //height of the walls
         const BORDER_WIDTH = 0.1;  //height of the walls
-        const RESTITUTION = 0.9;
-        const FRICTION = 0.01;
+        const RESTITUTION = 0.5;
+        const FRICTION = 0.1;
 
         var walls = [];
     
@@ -123,7 +141,11 @@ export class World extends Serializable{
             }, scene);
             wall.position = coord[1];
             wall.physicsImpostor = new PhysicsImpostor(wall, PhysicsImpostor.BoxImpostor, 
-                { mass: 0, restitution: RESTITUTION, friction: FRICTION});
+                {
+                    mass: 0, 
+                    //restitution: RESTITUTION, 
+                    //friction: FRICTION
+                });
             walls.push(wall);
         });
         return walls;

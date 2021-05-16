@@ -1,5 +1,5 @@
-import { Mesh, Scene, SphereBuilder, Vector3, PhysicsImpostor, StandardMaterial, Color3, KeyboardEventTypes, Quaternion } from "@babylonjs/core";
-import { Serializable, Serializer } from "./serialize2";
+import { Mesh, Scene, SphereBuilder, Vector3, PhysicsImpostor, StandardMaterial, Color3, KeyboardEventTypes, Quaternion, WebXRInputSource } from "@babylonjs/core";
+import { Serializable, Serializer } from "./serialize";
 import { World } from "./world";
 
 export class NetworkController extends Serializable{
@@ -8,8 +8,12 @@ export class NetworkController extends Serializable{
     isLocal = true;
     id: number;
     
+    //only set if we are in vr
+    vrInput: WebXRInputSource | null = null;
+    
     //for grabbing stuff
     squeeze: boolean;
+    squeezeBefore: boolean;
     
     grab = false;
     
@@ -17,7 +21,7 @@ export class NetworkController extends Serializable{
     keys;
 
     //tells us whether we want to move using the keyboard or the paddle should move by itself
-    autoMovement = true;
+    autoMovement = false;
 
     //needed for keyboard input
     tmpRotation = new Vector3();
@@ -101,16 +105,6 @@ export class NetworkController extends Serializable{
                     this.autoMovement = false;
                 }
 
-                if(e.type == KeyboardEventTypes.KEYDOWN && e.event.key == " "){
-                    if(!this.grab){
-                        //grab
-                        this.world.objects[0].grab(this);
-                        this.grab = true;
-                    } else {
-                        this.world.objects[0].release(this);
-                        this.grab = false;
-                    }
-                }
             }
         });    
 
@@ -119,7 +113,7 @@ export class NetworkController extends Serializable{
     
     
     isInVR(){
-        return false;
+        return this.vrInput !== null&& this.vrInput.motionController !== undefined;
     }
     
     
@@ -137,10 +131,12 @@ export class NetworkController extends Serializable{
         if(!this.isLocal) return;
 
         //if in vr, get input
+        this.world.logger.log("-isvr", this.isInVR());
         if(this.isInVR()){
-            /*this.controllers[0].position.copyFrom(this.inputVR[0].grip.position);*/
-            /*this.controllers[0].rotationQuaternion.copyFrom(this.inputVR[0].grip.rotationQuaternion);*/
-            /*this.controllers[0].squeeze = this.inputVR[0].motionController.getComponentOfType("trigger").pressed;*/
+            this.mesh.position.copyFrom(this.vrInput.grip.position);
+            this.mesh.rotationQuaternion.copyFrom(this.vrInput.grip.rotationQuaternion);
+            this.squeezeBefore = this.squeeze;
+            this.squeeze = this.vrInput.motionController.getComponentOfType("trigger").pressed;
         }
         else if(!this.autoMovement)
         {
@@ -150,7 +146,8 @@ export class NetworkController extends Serializable{
             if(this.keys["s"] === 1) this.mesh.position.x += speed;
             if(this.keys["a"] === 1) this.mesh.position.z -= speed;
             if(this.keys["d"] === 1) this.mesh.position.z += speed;
-            if(this.keys[" "] === 1) this.squeeze = true; else this.squeeze = false;
+            this.squeezeBefore = this.squeeze;
+            this.squeeze       = this.keys[" "] === 1;
             if(this.keys["q"] === 1) {
                 this.tmpRotation.y -= speed;
                 Quaternion.FromEulerVectorToRef(this.tmpRotation, this.mesh.rotationQuaternion);
@@ -170,10 +167,22 @@ export class NetworkController extends Serializable{
             Quaternion.FromEulerVectorToRef(new Vector3(Math.sin(this.renderCounter/20),0,0), this.mesh.rotationQuaternion);
             this.renderCounter += 1;
 
-            if(this.keys[" "] === 1) this.squeeze = true; else this.squeeze = false;
+            this.squeezeBefore = this.squeeze;
+            this.squeeze       = this.keys[" "] === 1;
         }
         
+        this.world.logger.log("-squeeze", this.squeeze);
         
+        if(this.squeeze && this.squeezeBefore != this.squeeze){
+            if(!this.grab){
+                //grab
+                this.world.objects[0].grab(this);
+                this.grab = true;
+            } else {
+                this.world.objects[0].release(this);
+                this.grab = false;
+            }
+        }
     }
 
     
