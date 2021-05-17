@@ -2,6 +2,7 @@ import { MeshBuilder, Vector3, StandardMaterial, Color3, Quaternion } from "@bab
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { Scene } from "@babylonjs/core/scene";
+import { Game } from "./game";
 import { NetworkController } from "./player";
 import { Serializable, Serializer } from "./serialize";
 import { World } from "./world";
@@ -13,9 +14,6 @@ export class NetworkObject extends Serializable {
     remoteAuthority = 1;
     
     priority = 0;
-
-    world: World;
-    players: NetworkController[] = [];
 
     //null or a pointer to a NetworkPlayer who currently grabs the object
     grabber: NetworkController | null = null;
@@ -29,19 +27,19 @@ export class NetworkObject extends Serializable {
     
     static counter = 0;
     id: number;
+    
+    game: Game;
 
-    constructor(mesh: Mesh, world: World, serializer: Serializer){
+    constructor(mesh: Mesh, game: Game){
         super();
         this.mesh = mesh;
-        this.world = world;
-
-        this.world.players.forEach(player => {
-            this.players[player.id] = player;
-        });
+        this.game = game;
         
+        console.log(game);
+
         this.id = NetworkObject.counter++;
         
-        this.finalize(serializer);
+        this.finalize(this.game.serializer);
     }
 
     //connect all the players and objects by setting collision callbacks between them
@@ -68,7 +66,7 @@ export class NetworkObject extends Serializable {
     distributeAuthorityOnCollision(other: NetworkObject){
         const myForce = this.mesh.physicsImpostor.getLinearVelocity().length() * this.mesh.physicsImpostor.mass;
         const yourForce = other.mesh.physicsImpostor.getLinearVelocity().length() * other.mesh.physicsImpostor.mass;
-        this.world.logger.log("difference", Math.abs(yourForce-myForce));
+        this.game.world.game.logger.log("difference", Math.abs(yourForce-myForce));
         //const myForce = this.id;
         //const yourForce = other.id;
         if(this.hasAuthority() && myForce >= yourForce){
@@ -100,10 +98,10 @@ export class NetworkObject extends Serializable {
         } else {
             this.priority = -1;
         }
-        this.world.logger.log("priority", this.priority);
+        this.game.world.game.logger.log("priority", this.priority);
 
-        this.world.logger.log("authLocal ", this.localAuthority);
-        this.world.logger.log("authRemote", this.remoteAuthority);
+        this.game.world.game.logger.log("authLocal ", this.localAuthority);
+        this.game.world.game.logger.log("authRemote", this.remoteAuthority);
     
         if(this.grabber !== null){
             const v = this.relativeGrabPosition;
@@ -146,16 +144,16 @@ export class NetworkObject extends Serializable {
         this.writeUint8(sendId);
         //this.world.logger.log("authSend", this.localAuthority);
         if(this.grabber === null){
-            this.writeVector3Pos(this.mesh.position);
+            this.writeVector3(this.mesh.position);
             this.writeQuaternion(this.mesh.rotationQuaternion);
-            this.writeVector3Vel(this.mesh.physicsImpostor.getLinearVelocity());
-            this.writeVector3Vel(this.mesh.physicsImpostor.getAngularVelocity());
         } else {
-            this.writeVector3(this.relativeGrabPosition, 5);
+            this.writeVector3(this.relativeGrabPosition);
             this.writeQuaternion(this.relativeGrabRotationQuaternion);
-            this.writeVector3Vel(this.mesh.physicsImpostor.getLinearVelocity());
-            this.writeVector3Vel(this.mesh.physicsImpostor.getAngularVelocity());
         }
+        this.mesh.physicsImpostor.setLinearVelocity(this.writeVector3(this.mesh.physicsImpostor.getLinearVelocity()));
+        this.mesh.physicsImpostor.setAngularVelocity(this.writeVector3(this.mesh.physicsImpostor.getAngularVelocity()));
+        //this.writeVector3(this.mesh.physicsImpostor.getLinearVelocity());
+        //this.writeVector3(this.mesh.physicsImpostor.getAngularVelocity());
     }
     deserialize(){
         //this.world.logger.log("-deserialize", Math.random());
@@ -163,7 +161,7 @@ export class NetworkObject extends Serializable {
         //this.world.logger.log("authincomming", this.remoteAuthority);
         if(!this.hasAuthority()){
             const id = this.readUint8();
-            var getGrabber = id === 123 ? null : this.players[id];
+            var getGrabber = id === 123 ? null : this.game.world.players[id];
             
             if(this.grabber !== getGrabber){
                 if(getGrabber === null) this.mesh.setParent(null);
@@ -172,15 +170,15 @@ export class NetworkObject extends Serializable {
             }
 
             if(this.grabber === null){
-                this.mesh.position = this.readVector3Pos();
+                this.mesh.position = this.readVector3();
                 this.mesh.rotationQuaternion.copyFrom(this.readQuaternion());
-                this.mesh.physicsImpostor.setLinearVelocity(this.readVector3Vel());
-                this.mesh.physicsImpostor.setAngularVelocity(this.readVector3Vel());
+                this.mesh.physicsImpostor.setLinearVelocity(this.readVector3());
+                this.mesh.physicsImpostor.setAngularVelocity(this.readVector3());
             } else {
-                this.relativeGrabPosition = this.readVector3(5);
+                this.relativeGrabPosition = this.readVector3();
                 this.relativeGrabRotationQuaternion.copyFrom(this.readQuaternion());
-                this.mesh.physicsImpostor.setLinearVelocity(this.readVector3Vel());
-                this.mesh.physicsImpostor.setAngularVelocity(this.readVector3Vel());
+                this.mesh.physicsImpostor.setLinearVelocity(this.readVector3());
+                this.mesh.physicsImpostor.setAngularVelocity(this.readVector3());
             }
         }  
     }
@@ -213,7 +211,7 @@ export class NetworkObject extends Serializable {
     }
 
 
-    static MakeSphere(world: World, scene: Scene, serializer: Serializer){
+    static MakeSphere(world: World, game: Game){
         const SIZE = 0.2;
         const MASS = 2;
         const RESTITUTION = 0.5;
@@ -223,21 +221,21 @@ export class NetworkObject extends Serializable {
             width  : SIZE,
             height : SIZE,
             depth  : SIZE,
-        }, scene);
+        }, game.scene);
         mesh.physicsImpostor = new PhysicsImpostor(mesh, PhysicsImpostor.BoxImpostor, 
             { 
                 mass:        MASS, 
                 //restitution: RESTITUTION, 
                 //friction:    FRICTION
-            }, scene);
+            }, game.scene);
         mesh.position.set(0,2,0);
         
         mesh.physicsImpostor.setLinearVelocity(new Vector3(0,3,0));
 
-        const material = new StandardMaterial("", scene);
+        const material = new StandardMaterial("", game.scene);
         material.diffuseColor = new Color3(1, 0, 1);
         mesh.material = material;
-        return new NetworkObject(mesh, world, serializer);
+        return new NetworkObject(mesh, game);
     }
 
 }

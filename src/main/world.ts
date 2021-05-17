@@ -5,9 +5,9 @@ import { SphereBuilder } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
-import { Scene } from "@babylonjs/core/scene";
 import { TextBlock, StackPanel, Control } from "@babylonjs/gui";
 import { AdvancedDynamicTexture } from "@babylonjs/gui/2D/advancedDynamicTexture";
+import { Game } from "./game";
 
 import { NetworkObject } from "./object";
 import { NetworkController } from "./player";
@@ -15,14 +15,16 @@ import { Serializable, Serializer } from "./serialize";
 
 //prints given key, value pairs on the sceen
 //sorts them alphabetically by key before printing
-export class MyLogger{
+export class Logger{
     static readonly MAX_KEYS = 20;
     texts: TextBlock[] = [];
     dict: any = {};
-    constructor(scene: Scene){
+    game: Game;
+    constructor(game: Game){
+        this.game = game;
 
         //https://www.babylonjs.com.cn/how_to/gui.html
-        var advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
+        var advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, this.game.scene);
         var panel = new StackPanel();   
         
         panel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
@@ -31,7 +33,7 @@ export class MyLogger{
         panel.width = 0.7;
         advancedTexture.addControl(panel);
 
-        for(let i=0; i < MyLogger.MAX_KEYS; i++){
+        for(let i=0; i < Logger.MAX_KEYS; i++){
             var text = new TextBlock();
             text.text = "";
             text.color = "white";
@@ -50,7 +52,7 @@ export class MyLogger{
         var i = 0;
         for (let key of Object.keys(this.dict).sort()){
             this.texts[i].text = "" + key + ": " + this.dict[key];
-            if(++i >= MyLogger.MAX_KEYS){
+            if(++i >= Logger.MAX_KEYS){
                 break;
             }
         }
@@ -58,28 +60,28 @@ export class MyLogger{
 }
 
 export class World extends Serializable{
-    scene:    Scene;
+    
+    //it's important that the id of the player matches the index in this array
     players:  NetworkController[];
     objects:  NetworkObject[];
     children: Serializable[];
-    logger:   MyLogger;
+    game:     Game;
     
 
-    constructor(scene: Scene, serializer: Serializer){
+    constructor(game: Game){
         super();
-        this.scene = scene;
-        this.logger = new MyLogger(scene);
+        this.game = game;
         
-        World.MakeGround(scene);
+        World.MakeGround(this.game.scene);
 
         //two players
         //if we want two controlllers per player just add them with the same id?
-        this.players = [new NetworkController(0,this,serializer), new NetworkController(1,this,serializer)];
+        this.players = [new NetworkController(0,this.game), new NetworkController(1,this.game)];
 
         //a bunch of network objects
         this.objects = [];
         for(let i = 0; i < 3; i++){
-            const sphere = NetworkObject.MakeSphere(this, scene, serializer);
+            const sphere = NetworkObject.MakeSphere(this, this.game);
             sphere.mesh.position.y = 1+i/4;
             this.objects.push(sphere);
         }
@@ -91,7 +93,7 @@ export class World extends Serializable{
         this.children = (<Serializable[]>this.players).concat(<Serializable[]>this.objects);
 
         
-        this.finalize(serializer);
+        this.finalize(this.game.serializer);
     }
     
     update(){

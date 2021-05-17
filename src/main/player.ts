@@ -1,10 +1,10 @@
 import { Mesh, Scene, SphereBuilder, Vector3, PhysicsImpostor, StandardMaterial, Color3, KeyboardEventTypes, Quaternion, WebXRInputSource } from "@babylonjs/core";
+import { Game } from "./game";
 import { Serializable, Serializer } from "./serialize";
-import { World } from "./world";
 
 export class NetworkController extends Serializable{
     mesh: Mesh;
-    world: World;
+    game: Game;
     isLocal = true;
     id: number;
     
@@ -43,22 +43,21 @@ export class NetworkController extends Serializable{
     };
 
     serialize() {
-        this.writeVector3(this.mesh.position, 5);
+        this.writeVector3(this.mesh.position);
         this.writeQuaternion(this.mesh.rotationQuaternion);
     }
     deserialize() {
         if(!this.isLocal) {
-            this.mesh.position = this.readVector3(5);
+            this.mesh.position = this.readVector3();
             this.mesh.rotationQuaternion.copyFrom(this.readQuaternion());   
         }
     }
 
 
-    constructor(id: number, world: World, serializer: Serializer){
+    constructor(id: number, game: Game){
         super();
         this.id = id;
-        this.world = world;
-        
+        this.game = game;
         this.keys = {};
     
         //the paddle
@@ -69,7 +68,7 @@ export class NetworkController extends Serializable{
                 diameterZ: NetworkController.SIZE, 
                 segments: 32 
             },
-            this.world.scene
+            this.game.scene
         );
         this.mesh.position = new Vector3(-0.3,0,-0.3);
         this.mesh.physicsImpostor = new PhysicsImpostor(
@@ -79,14 +78,14 @@ export class NetworkController extends Serializable{
                 mass: 0, 
                 restitution: NetworkController.RESTITUTION
             }, 
-            this.world.scene
+            this.game.scene
         );
-        const material1 = new StandardMaterial("", this.world.scene);
+        const material1 = new StandardMaterial("", this.game.scene);
         material1.diffuseColor = new Color3(1, 0, 1);
         this.mesh.material = material1;
         
 
-        this.world.scene.onKeyboardObservable.add((e) => {
+        this.game.scene.onKeyboardObservable.add((e) => {
             if(this.isLocal){
                 switch (e.type) {
                     case KeyboardEventTypes.KEYDOWN:
@@ -108,7 +107,7 @@ export class NetworkController extends Serializable{
             }
         });    
 
-        this.finalize(serializer);
+        this.finalize(this.game.serializer);
     }
     
     
@@ -131,7 +130,7 @@ export class NetworkController extends Serializable{
         if(!this.isLocal) return;
 
         //if in vr, get input
-        this.world.logger.log("-isvr", this.isInVR());
+        this.game.logger.log("-isvr", this.isInVR());
         if(this.isInVR()){
             this.mesh.position.copyFrom(this.vrInput.grip.position);
             this.mesh.rotationQuaternion.copyFrom(this.vrInput.grip.rotationQuaternion);
@@ -171,15 +170,15 @@ export class NetworkController extends Serializable{
             this.squeeze       = this.keys[" "] === 1;
         }
         
-        this.world.logger.log("-squeeze", this.squeeze);
+        this.game.logger.log("-squeeze", this.squeeze);
         
         if(this.squeeze && this.squeezeBefore != this.squeeze){
             if(!this.grab){
                 //grab
-                this.world.objects[0].grab(this);
+                this.game.world.objects[0].grab(this);
                 this.grab = true;
             } else {
-                this.world.objects[0].release(this);
+                this.game.world.objects[0].release(this);
                 this.grab = false;
             }
         }

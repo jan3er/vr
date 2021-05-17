@@ -1,12 +1,16 @@
 import { Quaternion, Vector3 } from "@babylonjs/core/Maths/math";
-import { MyLogger } from "./world";
+import { Game } from "./game";
 
 export class Serializer {
+
+    game: Game;
+    
+    constructor(game: Game){
+        this.game = game;
+    }
     
     //when serializable objects are created, they are added to this array
     objects: Serializable[] = [];
-
-    logger: MyLogger;
     
     counter = 0;
     
@@ -23,9 +27,11 @@ export class Serializer {
     prioritize(){
         this.objects.forEach(o => o._sendMe = false);
 
-        if(this.counter % 10 != 0) {
-            return
-        }
+        //TODO: play with this
+        //this.counter++;
+        //if(this.counter % 20 != 0) {
+            //return
+        //}
         
         //count the length of the suff we serialize so far
         var byteLength = 0;
@@ -47,7 +53,7 @@ export class Serializer {
         var num = 0;
         this.objects.forEach(o => num += o._sendMe ? 1 : 0);
 
-        this.logger.log("-num objects to serialize", num);
+        this.game.logger.log("-num objects to serialize", num);
         
     }
     
@@ -215,43 +221,44 @@ export abstract class Serializable {
         return this._readView.getFloat32(this._readOffset-4);
     }
 
-    writeVector3(vec: Vector3, maxVal){
-        //this.writeFloat16(vec.x, maxVal);
-        //this.writeFloat16(vec.y, maxVal);
-        //this.writeFloat16(vec.z, maxVal);
+    //this method does not cause any problems, so rounding seems to be okay.
+    writeVector3special(vec: Vector3){
+        vec.x = Math.ceil(vec.x * 10000) / 10000;
+        vec.x = Math.fround(vec.x);
+        vec.y = Math.fround(vec.y);
+        vec.z = Math.fround(vec.z);
         this.writeFloat32(vec.x);
         this.writeFloat32(vec.y);
         this.writeFloat32(vec.z);
+        return vec;
     }
-    readVector3(maxVal){
+    writeVector3(vec: Vector3){
+        vec.x = Math.fround(vec.x);
+        vec.y = Math.fround(vec.y);
+        vec.z = Math.fround(vec.z);
+        this.writeFloat32(vec.x);
+        this.writeFloat32(vec.y);
+        this.writeFloat32(vec.z);
+        return vec;
+    }
+    readVector3(){
         return new Vector3(
-            //this.readFloat16(maxVal),
-            //this.readFloat16(maxVal),
-            //this.readFloat16(maxVal),
             this.readFloat32(),
             this.readFloat32(),
             this.readFloat32(),
         );
     }
 
-    writeVector3Vel(vec: Vector3){
-        this.writeVector3(vec, 100);
-    }
-    readVector3Vel(){
-        return this.readVector3(100);
-    }
-    writeVector3Pos(vec: Vector3){
-        this.writeVector3(vec, 5);
-    }
-    readVector3Pos(){
-        return this.readVector3(5);
-    }
-
     writeQuaternion(q: Quaternion){
+        q.x = Math.fround(q.x);
+        q.y = Math.fround(q.y);
+        q.z = Math.fround(q.z);
+        q.w = Math.fround(q.w);
         this.writeFloat32(q.x);
         this.writeFloat32(q.y);
         this.writeFloat32(q.z);
         this.writeFloat32(q.w);
+        return q;
     }
     readQuaternion(){
         return new Quaternion(

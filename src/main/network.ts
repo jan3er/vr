@@ -1,18 +1,17 @@
+import { Game } from "./game";
 import { makeConnection } from "./makeConnection";
 import { Serializer } from "./serialize";
 import { World } from "./world";
 
 export class Network 
 {
-    world: World;
     p;
     connected = false;
     latestIncomingPackage: ArrayBuffer = null;
-    serializer: Serializer;
+    game: Game;
     
-    constructor(world: World, serializer: Serializer) {
-        this.world = world;
-        this.serializer = serializer;
+    constructor(game: Game) {
+        this.game = game;
     }
 
     //starts establishing the connection. to be called once at the beginning
@@ -21,16 +20,16 @@ export class Network
         
         if(this.p.initiator) {
             document.title = "Player 1";
-            this.world.players[0].isLocal = true;
-            this.world.players[1].isLocal = false;
+            this.game.world.players[0].isLocal = true;
+            this.game.world.players[1].isLocal = false;
         } else {
             document.title = "Player 2";
-            this.world.players[0].isLocal = false;
-            this.world.players[1].isLocal = true;
+            this.game.world.players[0].isLocal = false;
+            this.game.world.players[1].isLocal = true;
         }
 
         let i = this.p.initiator;
-        for(let o of this.world.objects){
+        for(let o of this.game.world.objects){
             if(i){
                 o.localAuthority = 1;
                 o.remoteAuthority = 0;
@@ -50,12 +49,12 @@ export class Network
     //to be called once every render frame
     mainLoop() {
         if(this.connected) {
-            const pkg = this.serializer.serialize();
+            const pkg = this.game.serializer.serialize();
             this.p.send(pkg);
         }
 
         if(this.latestIncomingPackage !== null)
-            this.serializer.deserialize(this.latestIncomingPackage);
+            this.game.serializer.deserialize(this.latestIncomingPackage);
             this.latestIncomingPackage = null;
     }
 }
