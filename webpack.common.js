@@ -11,8 +11,8 @@ module.exports = {
     //entry: path.resolve(appDirectory, "src/index.ts"),
     entry: __dirname + "/src/index.ts",
     output: {
-        //filename: '[name].[contenthash].js',
-        filename: 'bundle.js',
+        filename: 'bundle.[contenthash].js',
+        //filename: 'bundle.js',
         //path: path.resolve("./dist/"),
         path: __dirname + "/dist",
     },

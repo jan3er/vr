@@ -13,7 +13,6 @@ export class NetworkController extends Serializable{
     
     //for grabbing stuff
     squeeze: boolean;
-    squeezeBefore: boolean;
     
     grab = false;
     
@@ -134,7 +133,6 @@ export class NetworkController extends Serializable{
         if(this.isInVR()){
             this.mesh.position.copyFrom(this.vrInput.grip.position);
             this.mesh.rotationQuaternion.copyFrom(this.vrInput.grip.rotationQuaternion);
-            this.squeezeBefore = this.squeeze;
             this.squeeze = this.vrInput.motionController.getComponentOfType("trigger").pressed;
         }
         else if(!this.autoMovement)
@@ -145,7 +143,6 @@ export class NetworkController extends Serializable{
             if(this.keys["s"] === 1) this.mesh.position.x += speed;
             if(this.keys["a"] === 1) this.mesh.position.z -= speed;
             if(this.keys["d"] === 1) this.mesh.position.z += speed;
-            this.squeezeBefore = this.squeeze;
             this.squeeze       = this.keys[" "] === 1;
             if(this.keys["q"] === 1) {
                 this.tmpRotation.y -= speed;
@@ -166,19 +163,23 @@ export class NetworkController extends Serializable{
             Quaternion.FromEulerVectorToRef(new Vector3(Math.sin(this.renderCounter/20),0,0), this.mesh.rotationQuaternion);
             this.renderCounter += 1;
 
-            this.squeezeBefore = this.squeeze;
             this.squeeze       = this.keys[" "] === 1;
         }
         
         this.game.logger.log("-squeeze", this.squeeze);
         
-        if(this.squeeze && this.squeezeBefore != this.squeeze){
-            if(!this.grab){
-                //grab
-                this.game.world.objects[0].grab(this);
+        //grab and release objects
+        for(let object of this.game.world.objects){
+            if(this.mesh.intersectsMesh(object.mesh) 
+                && this.squeeze 
+                && this.grab == false 
+                && this.game.world.objects[0].grabber === null)
+            {
+                object.grab(this);
                 this.grab = true;
-            } else {
-                this.game.world.objects[0].release(this);
+            }
+            if(!this.squeeze && this.grab == true){
+                object.release(this);
                 this.grab = false;
             }
         }

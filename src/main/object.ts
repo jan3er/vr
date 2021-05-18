@@ -69,7 +69,7 @@ export class NetworkObject extends Serializable {
         this.game.world.game.logger.log("difference", Math.abs(yourForce-myForce));
         //const myForce = this.id;
         //const yourForce = other.id;
-        if(this.hasAuthority() && myForce >= yourForce){
+        if(this.hasAuthority() && myForce >= yourForce && other.grabber === null){
             other.takeAuthority();
         } 
     }
@@ -125,6 +125,23 @@ export class NetworkObject extends Serializable {
             this.mesh.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
             this.mesh.physicsImpostor.setAngularVelocity(new Vector3(0,0,0));
         }
+        
+        //if(this.id = 2){
+            //const a = Serializable.blub;
+            //this.game.logger.log("-pos.x", this.mesh.position.x*a);
+            //this.game.logger.log("-pos.y", this.mesh.position.y*a);
+            //this.game.logger.log("-pos.z", this.mesh.position.z*a);
+            //this.game.logger.log("-rot.x", this.mesh.rotationQuaternion.x*a);
+            //this.game.logger.log("-rot.y", this.mesh.rotationQuaternion.y*a);
+            //this.game.logger.log("-rot.z", this.mesh.rotationQuaternion.z*a);
+            //this.game.logger.log("-rot.w", this.mesh.rotationQuaternion.z*a);
+            //this.game.logger.log("-linvel.x", this.mesh.physicsImpostor.getLinearVelocity().x*a);
+            //this.game.logger.log("-linvel.y", this.mesh.physicsImpostor.getLinearVelocity().y*a);
+            //this.game.logger.log("-linvel.z", this.mesh.physicsImpostor.getLinearVelocity().z*a);
+            //this.game.logger.log("-angvel.x", this.mesh.physicsImpostor.getAngularVelocity().x*a);
+            //this.game.logger.log("-angvel.y", this.mesh.physicsImpostor.getAngularVelocity().y*a);
+            //this.game.logger.log("-angvel.z", this.mesh.physicsImpostor.getAngularVelocity().z*a);
+        //}
 
     }
     

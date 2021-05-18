@@ -25,7 +25,7 @@ export class Game{
         this.scene.enablePhysics(new Vector3(0,-9.81, 0), new CannonJSPlugin(null, 500, require("cannon")));
         
         //how do i wake them up again?
-        //scene.getPhysicsEngine().getPhysicsPlugin().world.allowSleep = true;
+        //this.scene.getPhysicsEngine().getPhysicsPlugin().world.allowSleep = true;
 
         // This creates and positions a free camera (non-mesh)
         const camera = new ArcRotateCamera("my first camera", 0, Math.PI / 7, 3, new Vector3(0, 0, 0), this.scene);
@@ -89,8 +89,8 @@ export class Game{
         // Register a render loop to repeatedly render the scene
         this.engine.runRenderLoop(() => {
             const start = new Date().getTime();
-            this.world.update();
             network.mainLoop();
+            this.world.update();
             const end = new Date().getTime();
             this.logger.log("fps", this.engine.getFps().toFixed());
             this.logger.log("manual", end-start);

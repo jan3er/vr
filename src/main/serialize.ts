@@ -19,7 +19,7 @@ export class Serializer {
     static readonly MIN_MESSAGE_LENGTH_BYTES = 50;
     //is this much is sent, throw an error
     //happens if a serialization is too large or there are too many values in the sendTogetherWith array
-    static readonly MAX_MESSAGE_LENGTH_BYTES = 1000;
+    static readonly MAX_MESSAGE_LENGTH_BYTES = 2000;
 
     //has to be called before serialization
     //determines which objects to be sent
@@ -220,19 +220,33 @@ export abstract class Serializable {
         this._readOffset += 4;
         return this._readView.getFloat32(this._readOffset-4);
     }
+    writeFloat64(x: number){
+        if(this._writeView !== undefined){
+            this._writeView.setFloat64(this._writeOffset, x);
+        }
+        this._writeOffset += 8;
+    }
+    readFloat64(){
+        this._readOffset += 8;
+        return this._readView.getFloat64(this._readOffset-8);
+    }
 
     //this method does not cause any problems, so rounding seems to be okay.
-    writeVector3special(vec: Vector3){
-        vec.x = Math.ceil(vec.x * 10000) / 10000;
-        vec.x = Math.fround(vec.x);
-        vec.y = Math.fround(vec.y);
-        vec.z = Math.fround(vec.z);
-        this.writeFloat32(vec.x);
-        this.writeFloat32(vec.y);
-        this.writeFloat32(vec.z);
-        return vec;
-    }
+    //writeVector3special(vec: Vector3){
+        //vec.x = Math.ceil(vec.x * 10000) / 10000;
+        //vec.x = Math.fround(vec.x);
+        //vec.y = Math.fround(vec.y);
+        //vec.z = Math.fround(vec.z);
+        //this.writeFloat32(vec.x);
+        //this.writeFloat32(vec.y);
+        //this.writeFloat32(vec.z);
+        //return vec;
+    //}
+    static readonly blub = 10000;
     writeVector3(vec: Vector3){
+        //vec.x = Math.floor(vec.x * Serializable.blub) / Serializable.blub;
+        //vec.y = Math.floor(vec.y * Serializable.blub) / Serializable.blub;
+        //vec.z = Math.floor(vec.z * Serializable.blub) / Serializable.blub;
         vec.x = Math.fround(vec.x);
         vec.y = Math.fround(vec.y);
         vec.z = Math.fround(vec.z);
@@ -250,6 +264,10 @@ export abstract class Serializable {
     }
 
     writeQuaternion(q: Quaternion){
+        //q.x = Math.floor(q.x * Serializable.blub) / Serializable.blub;
+        //q.y = Math.floor(q.y * Serializable.blub) / Serializable.blub;
+        //q.z = Math.floor(q.z * Serializable.blub) / Serializable.blub;
+        //q.w = Math.floor(q.w * Serializable.blub) / Serializable.blub;
         q.x = Math.fround(q.x);
         q.y = Math.fround(q.y);
         q.z = Math.fround(q.z);
