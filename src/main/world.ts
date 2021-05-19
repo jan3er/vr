@@ -10,7 +10,7 @@ import { AdvancedDynamicTexture } from "@babylonjs/gui/2D/advancedDynamicTexture
 import { Game } from "./game";
 
 import { NetworkObject } from "./object";
-import { NetworkController } from "./player";
+import { NetworkController } from "./controller";
 import { Serializable, Serializer } from "./serialize";
 
 //prints given key, value pairs on the sceen
@@ -64,7 +64,7 @@ export class World extends Serializable{
     //it's important that the id of the player matches the index in this array
     players:  NetworkController[];
     objects:  NetworkObject[];
-    children: Serializable[];
+    //children: Serializable[];
     game:     Game;
     
 
@@ -77,10 +77,12 @@ export class World extends Serializable{
         //two players
         //if we want two controlllers per player just add them with the same id?
         this.players = [new NetworkController(0,this.game), new NetworkController(1,this.game)];
+        this.players[0].isLocal = false;
+        this.players[1].isLocal = true;
 
         //a bunch of network objects
         this.objects = [];
-        for(let i = 0; i < 3; i++){
+        for(let i = 0; i < 10; i++){
             const sphere = NetworkObject.MakeSphere(this, this.game);
             sphere.mesh.position.y = 1+i/4;
             this.objects.push(sphere);
@@ -90,14 +92,17 @@ export class World extends Serializable{
         NetworkObject.RegisterCollisionCallbacks(this.players, this.objects);
 
         //in the end put everything that should be send in the children array
-        this.children = (<Serializable[]>this.players).concat(<Serializable[]>this.objects);
+        //this.children = (<Serializable[]>this.players).concat(<Serializable[]>this.objects);
 
         
         this.finalize(this.game.serializer);
     }
     
     update(){
-        for(let c of this.children){
+        for(let c of this.players){
+            c.update();
+        }
+        for(let c of this.objects){
             c.update();
         }
 

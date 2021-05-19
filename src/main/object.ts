@@ -3,7 +3,7 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { Scene } from "@babylonjs/core/scene";
 import { Game } from "./game";
-import { NetworkController } from "./player";
+import { NetworkController } from "./controller";
 import { Serializable, Serializer } from "./serialize";
 import { World } from "./world";
 
@@ -104,13 +104,14 @@ export class NetworkObject extends Serializable {
         this.game.world.game.logger.log("authRemote", this.remoteAuthority);
     
         if(this.grabber !== null){
-            const v = this.relativeGrabPosition;
-            this.mesh.position.set(v.x, v.y, v.z)
-            const q = this.relativeGrabRotationQuaternion
-            this.mesh.rotationQuaternion.set(q.x,q.y,q.z,q.w);
-            this.mesh.physicsImpostor.mass = 0;
+            this.mesh.position.copyFrom(this.relativeGrabPosition);
+            this.mesh.rotationQuaternion.copyFrom(this.relativeGrabRotationQuaternion);
+            //this.mesh.physicsImpostor.mass = 0;
+            this.mesh.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
+            this.mesh.physicsImpostor.setAngularVelocity(new Vector3(0,0,0));
+            //this.game.logger.log("-grabpos", this.relativeGrabPosition.y);
         } else {
-            this.mesh.physicsImpostor.mass = 1;
+            //this.mesh.physicsImpostor.mass = 1;
         }
             
 
@@ -207,24 +208,26 @@ export class NetworkObject extends Serializable {
             this.grabber = player;
             this.takeAuthority();
             this.mesh.setParent(player.mesh);
-            this.relativeGrabPosition = this.mesh.position;
+            this.relativeGrabPosition.copyFrom(this.mesh.position);
             this.relativeGrabRotationQuaternion.copyFrom(this.mesh.rotationQuaternion);
             //todos:
             //maybe set physics mass to zero?
-            
+            return true;
         }
-        console.log("grab!");
+        return false;
     }
     release(player: NetworkController){
         if(this.grabber === player){
-            this.grabber = null;
             this.mesh.setParent(null);
             //todos:
             //compute velocity
-            this.mesh.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
+            this.mesh.physicsImpostor.setLinearVelocity(this.grabber.velocity);
+            //this.mesh.physicsImpostor.setLinearVelocity(this.grabber.velocity);
             this.mesh.physicsImpostor.setAngularVelocity(new Vector3(0,0,0));
+            this.grabber = null;
+            return true;
         }
-        console.log("relsease!");
+        return false;
     }
 
 

@@ -19,7 +19,7 @@ export class Serializer {
     static readonly MIN_MESSAGE_LENGTH_BYTES = 50;
     //is this much is sent, throw an error
     //happens if a serialization is too large or there are too many values in the sendTogetherWith array
-    static readonly MAX_MESSAGE_LENGTH_BYTES = 2000;
+    static readonly MAX_MESSAGE_LENGTH_BYTES = 10000;
 
     //has to be called before serialization
     //determines which objects to be sent

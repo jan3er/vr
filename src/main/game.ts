@@ -84,7 +84,7 @@ export class Game{
         var inst = new SceneInstrumentation(this.scene);
         inst.captureInterFrameTime = true;
         inst.captureRenderTime = true;
-        inst.capturePhysicsTime = true
+        inst.capturePhysicsTime = true;
 
         // Register a render loop to repeatedly render the scene
         this.engine.runRenderLoop(() => {
