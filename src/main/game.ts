@@ -26,6 +26,10 @@ export class Game{
         
         //how do i wake them up again?
         //this.scene.getPhysicsEngine().getPhysicsPlugin().world.allowSleep = true;
+        //this.scene.getPhysicsEngine().setTimeStep(1/72);
+    
+        //TODO: this!
+        //https://doc.babylonjs.com/divingDeeper/animation/advanced_animations#deterministic-lockstep
 
         // This creates and positions a free camera (non-mesh)
         const camera = new ArcRotateCamera("my first camera", 0, Math.PI / 7, 3, new Vector3(0, 0, 0), this.scene);

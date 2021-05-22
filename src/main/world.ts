@@ -16,7 +16,7 @@ import { Serializable, Serializer } from "./serialize";
 //prints given key, value pairs on the sceen
 //sorts them alphabetically by key before printing
 export class Logger{
-    static readonly MAX_KEYS = 20;
+    static readonly MAX_KEYS = 15;
     texts: TextBlock[] = [];
     dict: any = {};
     game: Game;
@@ -27,22 +27,22 @@ export class Logger{
         var advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, this.game.scene);
         var panel = new StackPanel();   
         
-        panel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
-        panel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP; 
-        panel.height = 0.3;
-        panel.width = 0.7;
+        panel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+        panel.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER; 
+        //panel.height = 0.7;
+        //panel.width = 0.7;
         advancedTexture.addControl(panel);
 
         for(let i=0; i < Logger.MAX_KEYS; i++){
             var text = new TextBlock();
-            text.text = "";
+            text.text = "----------------------------------------------------------------------------------------------";
             text.color = "white";
             text.fontSize = 24;
             text.width = "500px";
             text.height = "30px";
             text.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
             panel.addControl(text);
-            advancedTexture.addControl(text);
+            //advancedTexture.addControl(text);
             this.texts.push(text);
         }
     }
@@ -82,7 +82,7 @@ export class World extends Serializable{
 
         //a bunch of network objects
         this.objects = [];
-        for(let i = 0; i < 10; i++){
+        for(let i = 0; i < 4; i++){
             const sphere = NetworkObject.MakeSphere(this, this.game);
             sphere.mesh.position.y = 1+i/4;
             this.objects.push(sphere);
