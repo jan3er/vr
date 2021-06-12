@@ -21,11 +21,15 @@ export class Network
         if(this.p.initiator) {
             document.title = "Player 1";
             this.game.world.players[0].isLocal = true;
-            this.game.world.players[1].isLocal = false;
+            this.game.world.players[1].isLocal = true;
+            this.game.world.players[2].isLocal = false;
+            this.game.world.players[3].isLocal = false;
         } else {
             document.title = "Player 2";
             this.game.world.players[0].isLocal = false;
-            this.game.world.players[1].isLocal = true;
+            this.game.world.players[1].isLocal = false;
+            this.game.world.players[2].isLocal = true;
+            this.game.world.players[3].isLocal = true;
         }
 
         let i = this.p.initiator;
@@ -46,15 +50,15 @@ export class Network
         this.connected = true;
     }
 
-    //to be called once every render frame
-    mainLoop() {
+    //to be called every step after the physics
+    step() {
+        if(this.latestIncomingPackage !== null){
+            this.game.serializer.deserialize(this.latestIncomingPackage);
+            this.latestIncomingPackage = null;
+        }
         if(this.connected) {
             const pkg = this.game.serializer.serialize();
             this.p.send(pkg);
         }
-
-        if(this.latestIncomingPackage !== null)
-            this.game.serializer.deserialize(this.latestIncomingPackage);
-            this.latestIncomingPackage = null;
     }
 }

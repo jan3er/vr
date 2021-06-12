@@ -1,63 +1,14 @@
-import { KeyboardEventTypes } from "@babylonjs/core/Events/keyboardEvents";
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { Color3, Vector3 } from "@babylonjs/core/Maths/math";
-import { SphereBuilder } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
+import { Vector3 } from "@babylonjs/core/Maths/math";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
-import { TextBlock, StackPanel, Control } from "@babylonjs/gui";
-import { AdvancedDynamicTexture } from "@babylonjs/gui/2D/advancedDynamicTexture";
 import { Game } from "./game";
 
 import { NetworkObject } from "./object";
 import { NetworkController } from "./controller";
-import { Serializable, Serializer } from "./serialize";
+import { Serializable } from "./serialize";
+import { Factory } from "./factory";
 
-//prints given key, value pairs on the sceen
-//sorts them alphabetically by key before printing
-export class Logger{
-    static readonly MAX_KEYS = 15;
-    texts: TextBlock[] = [];
-    dict: any = {};
-    game: Game;
-    constructor(game: Game){
-        this.game = game;
-
-        //https://www.babylonjs.com.cn/how_to/gui.html
-        var advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, this.game.scene);
-        var panel = new StackPanel();   
-        
-        panel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-        panel.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER; 
-        //panel.height = 0.7;
-        //panel.width = 0.7;
-        advancedTexture.addControl(panel);
-
-        for(let i=0; i < Logger.MAX_KEYS; i++){
-            var text = new TextBlock();
-            text.text = "----------------------------------------------------------------------------------------------";
-            text.color = "white";
-            text.fontSize = 24;
-            text.width = "500px";
-            text.height = "30px";
-            text.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
-            panel.addControl(text);
-            //advancedTexture.addControl(text);
-            this.texts.push(text);
-        }
-    }
-    
-    log(key, value){
-        this.dict[key] = value;
-        var i = 0;
-        for (let key of Object.keys(this.dict).sort()){
-            this.texts[i].text = "" + key + ": " + this.dict[key];
-            if(++i >= Logger.MAX_KEYS){
-                break;
-            }
-        }
-    }
-}
 
 export class World extends Serializable{
     
@@ -67,6 +18,7 @@ export class World extends Serializable{
     //children: Serializable[];
     game:     Game;
     
+    static readonly NUM_BOXES = 5;
 
     constructor(game: Game){
         super();
@@ -76,17 +28,41 @@ export class World extends Serializable{
 
         //two players
         //if we want two controlllers per player just add them with the same id?
-        this.players = [new NetworkController(0,this.game), new NetworkController(1,this.game)];
-        this.players[0].isLocal = false;
+        this.players = [
+            new NetworkController(0,this.game), 
+            new NetworkController(1,this.game),
+            new NetworkController(2,this.game), 
+            new NetworkController(3,this.game)
+        ];
+        this.players[0].isLocal = true;
         this.players[1].isLocal = true;
+        this.players[2].isLocal = false;
+        this.players[3].isLocal = false;
 
         //a bunch of network objects
         this.objects = [];
-        for(let i = 0; i < 4; i++){
-            const sphere = NetworkObject.MakeSphere(this, this.game);
-            sphere.mesh.position.y = 1+i/4;
-            this.objects.push(sphere);
-        }
+        //for(let i = 0; i < World.NUM_BOXES; i++){
+            //const box = Factory.Box(this, this.game);
+            //box.mesh.position.y = 0.1+0.2*i;
+            ////sphere.mesh.position.y = 1+2*i;
+            //this.objects.push(box);
+        //}
+
+        //for(let i = 0; i < 1; i++){
+            //const ball = Factory.TennisBall(this, this.game);
+            //ball.mesh.physicsImpostor.setLinearVelocity(new Vector3(0,-100,0));
+            //this.objects.push(ball);
+        //}
+        this.objects.push(Factory.Box(this, this.game));
+        this.objects.push(Factory.Box(this, this.game));
+        this.objects.push(Factory.TennisBall(this, this.game));
+        //this.objects.push(Factory.TennisBall(this, this.game));
+        //this.objects.push(Factory.TennisBall(this, this.game));
+        //this.objects.push(Factory.SoccerBall(this, this.game));
+        //this.objects.push(Factory.SoccerBall(this, this.game));
+        this.objects.push(Factory.SoccerBall(this, this.game));
+        this.objects.push(Factory.Paddle(this, this.game));
+        this.objects.push(Factory.Bat(this, this.game));
 
         //make sure the authority is updated on collision
         NetworkObject.RegisterCollisionCallbacks(this.players, this.objects);
@@ -98,12 +74,12 @@ export class World extends Serializable{
         this.finalize(this.game.serializer);
     }
     
-    update(){
+    stepAfterPhysics(){
         for(let c of this.players){
-            c.update();
+            c.stepAfterPhysics();
         }
         for(let c of this.objects){
-            c.update();
+            c.stepAfterPhysics();
         }
 
         for(let o1 of this.objects){
@@ -112,26 +88,27 @@ export class World extends Serializable{
                 if (o1.mesh.intersectsMesh(o2.mesh)){
                     o1.sendTogetherWith.push(o2);
                 }
-                /*const key:string = "-" + o1.id + o2.id;*/
-                /*if (o1.mesh.intersectsMesh(o2.mesh)){*/
-                    /*this.logger.log(key, 1)*/
-                /*} else {*/
-                    /*this.logger.log(key, 0)*/
-                /*}*/
             }
         }
-        
+    }
+    stepBeforeRender(delta){
+        for(let c of this.players){
+            c.stepBeforeRender(delta);
+        }
+        for(let c of this.objects){
+            c.stepBeforeRender(delta);
+        }
     }
     
     ///////////////////////////////////////////////////
     
     static MakeGround(scene) : Mesh[] {
-        const LENGTH = 2; //diameter of the area
-        const WIDTH = 2; //diameter of the area
+        const LENGTH = 1.5; //diameter of the area
+        const WIDTH = 1.5; //diameter of the area
         const HEIGHT = 0.5;  //height of the walls
         const BORDER_WIDTH = 0.1;  //height of the walls
-        const RESTITUTION = 0.5;
-        const FRICTION = 0.1;
+        const RESTITUTION = 0.9;
+        const FRICTION = 0.8;
 
         var walls = [];
     
@@ -150,9 +127,11 @@ export class World extends Serializable{
             wall.physicsImpostor = new PhysicsImpostor(wall, PhysicsImpostor.BoxImpostor, 
                 {
                     mass: 0, 
-                    //restitution: RESTITUTION, 
-                    //friction: FRICTION
+                    restitution: RESTITUTION, 
+                    friction: FRICTION,
+                    disableBidirectionalTransformation: true,
                 });
+            wall.checkCollisions = true;
             walls.push(wall);
         });
         return walls;

@@ -25,6 +25,10 @@ export class NetworkObject extends Serializable {
     //the mesh with all its physics property, will probably be set by some static constructor method
     mesh: Mesh;
     
+    //for computing velocity
+    previousPosition = Vector3.Zero();
+    previousRotationQuaternion = Quaternion.Identity();
+    
     static counter = 0;
     id: number;
     
@@ -92,7 +96,8 @@ export class NetworkObject extends Serializable {
         return this.priority;
     }
 
-    update(){
+    stepBeforeRender(delta){
+    //stepAfterPhysics(){
         if(this.hasAuthority()){
             this.priority++;
         } else {
@@ -103,17 +108,27 @@ export class NetworkObject extends Serializable {
         this.game.world.game.logger.log("authLocal ", this.localAuthority);
         this.game.world.game.logger.log("authRemote", this.remoteAuthority);
     
+        //distinguish between grabbed and not grabbed
         if(this.grabber !== null){
+            
+            //snap position and rotation to where it should be
             this.mesh.position.copyFrom(this.relativeGrabPosition);
             this.mesh.rotationQuaternion.copyFrom(this.relativeGrabRotationQuaternion);
-            //this.mesh.physicsImpostor.mass = 0;
-            this.mesh.physicsImpostor.setLinearVelocity(new Vector3(0,0,0));
-            this.mesh.physicsImpostor.setAngularVelocity(new Vector3(0,0,0));
-            //this.game.logger.log("-grabpos", this.relativeGrabPosition.y);
-        } else {
-            //this.mesh.physicsImpostor.mass = 1;
-        }
             
+            //compute linear and angular velocity
+            var rotationQuaternion = Quaternion.Identity();
+            var position = Vector3.Zero();
+            this.mesh.computeWorldMatrix(true);
+            this.mesh.getWorldMatrix().decompose(Vector3.Zero(), rotationQuaternion, position);
+            const diffrot = rotationQuaternion.multiply(Quaternion.Inverse(this.previousRotationQuaternion)).toEulerAngles();
+            this.mesh.physicsImpostor.setAngularVelocity(diffrot.scale(1000/delta));
+            this.mesh.physicsImpostor.setLinearVelocity(position.subtract(this.previousPosition).scale(1000/delta));
+            this.previousRotationQuaternion.copyFrom(rotationQuaternion);
+            this.previousPosition.copyFrom(position);
+        } else {
+            this.previousRotationQuaternion.copyFrom(this.mesh.rotationQuaternion);
+            this.previousPosition.copyFrom(this.mesh.position);
+        }
 
         if(this.hasAuthority()){
             (<StandardMaterial>this.mesh.material).diffuseColor = new Color3(1,0,0);
@@ -204,117 +219,17 @@ export class NetworkObject extends Serializable {
     //grab an object. this method can only be called by the local player
     //for the remote player, the grabbing state is changed via deserialization
     grab(player: NetworkController){
-        if(this.grabber === null && player.isLocal){
-            this.grabber = player;
-            this.takeAuthority();
-            this.mesh.setParent(player.mesh);
-            this.relativeGrabPosition.copyFrom(this.mesh.position);
-            this.relativeGrabRotationQuaternion.copyFrom(this.mesh.rotationQuaternion);
-            //todos:
-            //maybe set physics mass to zero?
-            return true;
-        }
-        return false;
+        this.grabber = player;
+        this.takeAuthority();
+        this.mesh.setParent(player.mesh);
+        this.relativeGrabPosition.copyFrom(this.mesh.position);
+        this.relativeGrabRotationQuaternion.copyFrom(this.mesh.rotationQuaternion);
     }
-    release(player: NetworkController){
-        if(this.grabber === player){
-            this.mesh.setParent(null);
-            //todos:
-            //compute velocity
-            this.mesh.physicsImpostor.setLinearVelocity(this.grabber.velocity);
-            //this.mesh.physicsImpostor.setLinearVelocity(this.grabber.velocity);
-            this.mesh.physicsImpostor.setAngularVelocity(new Vector3(0,0,0));
-            this.grabber = null;
-            return true;
-        }
-        return false;
+    release(){
+        this.grabber = null;
+        this.mesh.setParent(null);
     }
-
-
-    static MakeSphere(world: World, game: Game){
-        const SIZE = 0.2;
-        const MASS = 2;
-        const RESTITUTION = 0.5;
-        const FRICTION = 0.1;
-
-        const mesh = MeshBuilder.CreateBox("", {
-            width  : SIZE,
-            height : SIZE,
-            depth  : SIZE,
-        }, game.scene);
-        mesh.physicsImpostor = new PhysicsImpostor(mesh, PhysicsImpostor.BoxImpostor, 
-            { 
-                mass:        MASS, 
-                //restitution: RESTITUTION, 
-                //friction:    FRICTION
-            }, game.scene);
-        mesh.position.set(0,2,0);
-        
-        mesh.physicsImpostor.setLinearVelocity(new Vector3(0,3,0));
-
-        const material = new StandardMaterial("", game.scene);
-        material.diffuseColor = new Color3(1, 0, 1);
-        mesh.material = material;
-        return new NetworkObject(mesh, game);
+    isGrabbed(){
+        return this.grabber !== null;
     }
-
 }
-
-// export class Sphere extends NetworkObject{
-//     mesh: Mesh;
-//     scene: Scene;
-
-//     static readonly SIZE = 0.2;
-//     static readonly MASS = 2;
-//     static readonly RESTITUTION = 0.9;
-//     static readonly FRICTION = 0.01;
-
-//     constructor(players: NetworkPlayer[], scene: Scene){
-//         super(players);
-//         this.scene = scene;
-//         this.mesh = MeshBuilder.CreateBox("", {
-//             width  : Sphere.SIZE,
-//             height : Sphere.SIZE,
-//             depth  : Sphere.SIZE,
-//         }, this.scene);
-//         this.mesh.physicsImpostor = new PhysicsImpostor(this.mesh, PhysicsImpostor.BoxImpostor, 
-//             { 
-//                 mass:        Sphere.MASS, 
-//                 restitution: Sphere.RESTITUTION, 
-//                 friction:    Sphere.FRICTION
-//             }, this.scene);
-//         this.mesh.position.set(0,2,0);
-
-//         this.mesh.physicsImpostor.setLinearVelocity(new Vector3(0,3,0));
-
-//         const material = new StandardMaterial("", this.scene);
-//         material.diffuseColor = new Color3(1, 0, 1);
-//         this.mesh.material = material;
-
-//         players.forEach(player => {
-//             this.mesh.physicsImpostor.registerOnPhysicsCollide(player.mesh.physicsImpostor, (main, collided) => {
-//                 if(player.isLocal) {
-//                     this.localAuthority = this.remoteAuthority + 1;
-//                 }
-//             });
-//         });
-//     }
-
-//     serialize() {
-//         super.serialize();
-//         this.writeVector3(this.mesh.position);
-//         this.writeQuaternion(this.mesh.rotationQuaternion);
-//         this.writeVector3(this.mesh.physicsImpostor.getLinearVelocity());
-//         this.writeVector3(this.mesh.physicsImpostor.getAngularVelocity());
-//     }
-//     deserialize() {
-//         super.deserialize();
-//         if(this.acceptIncoming){
-//             this.mesh.position = this.readVector3();
-//             this.mesh.rotationQuaternion.copyFrom(this.readQuaternion());
-//             this.mesh.physicsImpostor.setLinearVelocity(this.readVector3());
-//             this.mesh.physicsImpostor.setAngularVelocity(this.readVector3());
-//         }  
-//     }
-// }
-

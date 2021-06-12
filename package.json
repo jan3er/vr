@@ -7,6 +7,7 @@
         "@babylonjs/core": "4.2",
         "@babylonjs/gui": "4.2",
         "@babylonjs/loaders": "4.2",
+        "ammo.js": "github:kripken/ammo.js",
         "cannon": "^0.6.2",
         "gh-pages": "^3.1.0"
     },

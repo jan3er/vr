@@ -178,7 +178,8 @@ export abstract class Serializable {
     //serialization should happen using the read*** and write*** methods defined below
     serialize(){}
     deserialize(){}
-    update(){}
+    stepAfterPhysics(){}
+    stepBeforeRender(delta: number){}
 
     ////////////////////////////////////////////////////////////
     
